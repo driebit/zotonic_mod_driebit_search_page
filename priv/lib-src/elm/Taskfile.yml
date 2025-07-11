@@ -4,7 +4,7 @@ interval: "500ms" # Interval for --watch mode
 set: [e, u, pipefail]
 
 vars:
-  OUTPUT_FILE: 'dist/driebit_calendar.js'
+  OUTPUT_FILE: 'dist/driebit_search_page.js'
 
 tasks:
   default:
