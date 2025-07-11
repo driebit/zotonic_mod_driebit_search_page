@@ -1,0 +1,33 @@
+version: "3"
+
+interval: "500ms" # Interval for --watch mode
+set: [e, u, pipefail]
+
+vars:
+  ELM_SRC_DIR: 'priv/lib-src/elm'
+  ELM_DIST_DIR: 'priv/lib/js'
+  ELM_DIST_FILES: '{{.ELM_SRC_DIR}}/dist/*.js'
+
+includes:
+  elm:
+    taskfile: priv/lib-src/elm/Taskfile.yml
+    dir: priv/lib-src/elm
+
+  sass:
+    taskfile: priv/lib-src/scss/Taskfile.yml
+    dir: priv/lib-src/scss
+
+tasks:
+  default:
+    deps:
+      - build
+
+  build:
+    deps:
+      - elm:build
+      - sass:build
+  
+    cmds:
+      - mkdir -p {{.ELM_DIST_DIR}}
+      - ls {{.ELM_DIST_FILES}}
+      - mv {{.ELM_DIST_FILES}} {{.ELM_DIST_DIR}}

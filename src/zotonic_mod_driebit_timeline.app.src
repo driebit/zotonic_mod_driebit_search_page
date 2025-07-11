@@ -1,0 +1,10 @@
+{application, zotonic_mod_driebit_search_page, [
+    {description, "Configurable search page"},
+    {vsn, "git"},
+    {registered, []},
+    {applications, [kernel, stdlib, zotonic_core]},
+    {env, []},
+    {modules, []},
+    {maintainers, []},
+    {licenses, ["EUPL"]}
+]}.

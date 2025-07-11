@@ -1,0 +1,36 @@
+version: "3"
+
+interval: "500ms" # Interval for --watch mode
+set: [e, u, pipefail]
+
+vars:
+  OUTPUT_FILE: 'dist/driebit_calendar.js'
+
+tasks:
+  default:
+    deps: [build]
+
+  build:
+    cmds:
+      - pwd
+      - mkdir -p dist
+      - task: "{{if .DEBUG}}elm-debug{{else}}elm-optimized{{end}}"
+
+  elm-debug:
+    cmds:
+      - elm make --debug src/Main.elm --output {{.OUTPUT_FILE}}
+
+  elm-optimized: |
+    elm make --optimize src/Main.elm --output /tmp/elm.js
+    uglifyjs /tmp/elm.js --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --output {{.OUTPUT_FILE}}
+
+  analyse:
+    cmds:
+      - elm-analyse --serve src
+
+  format:
+    cmds:
+      - elm-format --yes src
+      - elm-format --yes tests
+
+  test: elm-test
