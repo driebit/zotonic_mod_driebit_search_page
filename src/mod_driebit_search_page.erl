@@ -20,7 +20,7 @@ observe_admin_menu(#admin_menu{}, Acc, _Context) ->
         id = admin_search_page,
         parent = admin_modules,
         label = "Search page",
-        url = {admin_search_page},
+        url = {admin_edit_rsc, [{id, search_page}]},
         visiblecheck = {acl, use, mod_admin}
        }
     | Acc ].
@@ -34,12 +34,17 @@ manage_schema(_Version, _Context) ->
         ]
     }.
 
-observe_admin_edit_blocks(#admin_edit_blocks{id = 630}, _Menu, Context) ->
-    [
-        {100, ?__("Filters", Context), [
-            {category_filter, ?__("Filter op categorie", Context)},
-            {keywords_filter, ?__("Filter op trefwoorden", Context)}
-        ]}
-    ].
+observe_admin_edit_blocks(#admin_edit_blocks{id = Id}, Menu, Context) ->
+    case m_rsc:p(Id, name, Context) of
+        <<"search_page">> ->
+            [
+                {100, ?__("Filters", Context), [
+                    {category_filter, ?__("Filter op categorie", Context)},
+                    {keywords_filter, ?__("Filter op trefwoorden", Context)}
+                ]}
+            ];
+        _ ->
+            Menu
+        end.
 
 

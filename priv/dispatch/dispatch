@@ -1,4 +1,4 @@
 %% -*- mode: erlang -*-
 [
- {admin_search_page, [ "admin", "search_page" ], controller_admin_edit, [ {id, 630} ]}
+ {admin_search_page, [ "admin", "search_page" ], controller_admin_edit, [ {id, search_page} ]}
 ].
