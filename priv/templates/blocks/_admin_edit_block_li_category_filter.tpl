@@ -1,7 +1,7 @@
 {% extends "admin_edit_widget_i18n.tpl" %}
 
 {% block widget_title %}
-    {_ Filter Categoriw _}<div class="widget-header-tools"></div>
+    {_ Filter Categorie _}<div class="widget-header-tools"></div>
 {% endblock %}
 
 {% block widget_show_minimized %}false{% endblock %}
@@ -13,23 +13,29 @@
 {% block widget_content_nolang %}
 
     <h3>Instellingen</h3>
+    <div class="form-group row">
+        <label class="control-label col-md-3" for="filter_title">Titel</label>
+        <div class="col-md-9">
+            <input type="text" name="blocks[].filter_title~{{ name }}" value="{{ blk.filter_title }}" id="filter_title" class="form-control" />
+        </div>
+    </div>
     <div class="controls">
         <div class="radio">
             <div>
                 <label>
-                    <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.align == 'collapsed' %}checked{% endif %} value="collapsed" id="collapsed">
+                    <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.collapse == 'collapsed' %}checked{% endif %} value="collapsed" id="collapsed">
                     {_ Toon ingeklapt _}
                 </label>
             </div>
             <div>
                 <label>
-                    <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.align == 'not_collapsed' %}checked{% endif %} value="not_collapsed" id="not_collapsed">
+                    <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.collapse == 'not_collapsed' %}checked{% endif %} value="not_collapsed" id="not_collapsed">
                     {_ Toon uitgeklapt _}
                 </label>
             </div>
             <div>
                 <label>
-                    <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.align == 'uncollapsable' %}checked{% endif %} value="uncollapsable" id="uncollapsable">
+                    <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.collapse == 'uncollapsable' %}checked{% endif %} value="uncollapsable" id="uncollapsable">
                     {_ Toon zonder uitklapper _}
                 </label>
             </div>
@@ -44,12 +50,6 @@
                 <label>
                     <input type="radio" name="blocks[].displaymode~{{ name }}" {% if blk.displaymode == 'checkboxes' %}checked{% endif %} value="checkboxes" id="checkboxes">
                     {_ Checkboxes (meerdere opties selecteerbaar) _}
-                </label>
-            </div>
-            <div>
-                <label>
-                    <input type="radio" name="blocks[].displaymode~{{ name }}" {% if blk.displaymode == 'radio_buttons' %}checked{% endif %} value="radio_buttons" id="radio_buttons">
-                    {_ Radio buttons (één optie selecteerbaar) _}
                 </label>
             </div>
             <div>

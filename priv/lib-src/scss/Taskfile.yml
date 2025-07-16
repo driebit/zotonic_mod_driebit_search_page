@@ -13,7 +13,7 @@ tasks:
                 sass \
                   --no-source-map \
                   ./src/screen.scss \
-                | postcss --use autoprefixer --output ../../lib/dist/screen.css --no-map
+                | postcss --use autoprefixer --output ../../lib/dist/search_page.css --no-map
 
         generates:
-            - ../../lib/dist/screen.css
+            - ../../lib/dist/search_page.css
