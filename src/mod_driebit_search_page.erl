@@ -40,7 +40,7 @@ observe_admin_edit_blocks(#admin_edit_blocks{id = Id}, Menu, Context) ->
             [
                 {100, ?__("Filters", Context), [
                     {category_filter, ?__("Filter op categorie", Context)},
-                    {keywords_filter, ?__("Filter op trefwoorden", Context)}
+                    {object_filter, ?__("Filter op relatie", Context)}
                 ]}
             ];
         _ ->
