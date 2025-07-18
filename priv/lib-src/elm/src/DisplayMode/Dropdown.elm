@@ -1,0 +1,73 @@
+module DisplayMode.Dropdown exposing (..)
+
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (on, onClick)
+import Json.Decode as Decode
+import Resource exposing (Resource)
+
+
+type alias Model =
+    { selectedResource : Maybe Resource
+    , options : List Resource
+    , id : String
+    }
+
+
+init : String -> List Resource -> Model
+init id options =
+    { selectedResource = Nothing
+    , options = options
+    , id = id
+    }
+
+
+type Msg
+    = ResourceSelected String
+
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        ResourceSelected selectedResourceId ->
+            let
+                selectedResource =
+                    model.options
+                        |> List.filter (\resource -> String.fromInt resource.id == selectedResourceId)
+                        |> List.head
+
+                newSelectedResource =
+                    case model.selectedResource of
+                        Just resource ->
+                            if String.fromInt resource.id == selectedResourceId then
+                                Nothing
+
+                            else
+                                selectedResource
+
+                        Nothing ->
+                            selectedResource
+            in
+            { model | selectedResource = newSelectedResource }
+
+
+view : Model -> Html Msg
+view { selectedResource, options } =
+    div []
+        [ select [ class "dropdown", onChange ResourceSelected ]
+            (List.map
+                (\resource ->
+                    option
+                        [ value (String.fromInt resource.id)
+                        , selected (Maybe.map (\r -> r.id == resource.id) selectedResource |> Maybe.withDefault False)
+                        ]
+                        [ text resource.title ]
+                )
+                options
+            )
+        ]
+
+
+onChange : (String -> msg) -> Attribute msg
+onChange toMsg =
+    on "change" (Decode.at [ "target", "value" ] Decode.string |> Decode.map toMsg)

@@ -58,6 +58,12 @@
                     {_ Dropdown (één optie selecteerbaar) _}
                 </label>
             </div>
+            <div>
+                <label>
+                    <input type="radio" name="blocks[].displaymode~{{ name }}" {% if blk.displaymode == 'multiselect' %}checked{% endif %} value="multiselect" id="dropdown">
+                    {_ Multiselect met zoek _}
+                </label>
+            </div>
         </div>
     </div>
 
