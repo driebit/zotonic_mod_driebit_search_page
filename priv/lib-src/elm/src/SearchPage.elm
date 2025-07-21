@@ -30,6 +30,7 @@ main =
 
 type alias Model =
     { filters : Dict String Filter
+    , fullTextSearchQuery : String
     , results : List Int
     }
 
@@ -46,13 +47,14 @@ init flags =
             List.map (\filter -> ( idFromFilter filter, filter )) filters
                 |> Dict.fromList
     in
-    ( { filters = filterDict, results = [] }, Cmd.none )
+    ( { filters = filterDict, results = [], fullTextSearchQuery = "" }, searchPageCall <| Encode.object [] )
 
 
 type Msg
     = NoOp
     | FilterMsg String Filter.Msg
     | SearchPageReply Decode.Value
+    | FullTextSearchInput String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -88,6 +90,20 @@ update msg model =
                     in
                     ( model, Cmd.none )
 
+        FullTextSearchInput query ->
+            let
+                updatedModel =
+                    { model | fullTextSearchQuery = query }
+
+                encodedSearchFilters =
+                    model.filters
+                        |> Dict.toList
+                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+            in
+            ( updatedModel
+            , searchPageCall (Encode.object <| ( "text", Encode.string query ) :: encodedSearchFilters)
+            )
+
 
 
 -- VIEW
@@ -101,6 +117,9 @@ view model =
                 [ class "c-full-text-search__searchbar"
                 , type_ "text"
                 , placeholder "zoeken"
+                , value model.fullTextSearchQuery
+                , onInput FullTextSearchInput
+                , id "search-bar"
                 ]
                 []
             ]
