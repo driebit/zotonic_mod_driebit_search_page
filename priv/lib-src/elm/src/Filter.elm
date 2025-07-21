@@ -3,11 +3,11 @@ module Filter exposing (..)
 import Collapse exposing (Collapse)
 import DisplayMode exposing (DisplayMode)
 import DisplayMode.Dropdown
-import Html exposing (Html)
+import Html exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import List exposing (drop)
 import Resource exposing (Resource)
+import Set
 
 
 type Filter
@@ -35,6 +35,7 @@ type alias ObjectFilter =
 
 type Msg
     = DisplayModeMsg DisplayMode.Msg
+    | CollapseMsg Collapse.Msg
 
 
 update : Msg -> Filter -> Filter
@@ -45,10 +46,16 @@ update msg filter =
                 DisplayModeMsg displayModeMsg ->
                     Category { categoryFilter | displayMode = DisplayMode.update displayModeMsg categoryFilter.displayMode }
 
+                CollapseMsg collapseMsg ->
+                    Category { categoryFilter | collapse = Collapse.update collapseMsg categoryFilter.collapse }
+
         Object objectFilter ->
             case msg of
                 DisplayModeMsg displayModeMsg ->
                     Object { objectFilter | displayMode = DisplayMode.update displayModeMsg objectFilter.displayMode }
+
+                CollapseMsg collapseMsg ->
+                    Object { objectFilter | collapse = Collapse.update collapseMsg objectFilter.collapse }
 
 
 fromJson : Decoder Filter
@@ -84,14 +91,18 @@ toFilter type_ name displayModeEncoded collapse options id =
             Category { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
 
 
+view : Filter -> Html Msg
 view filter =
-    Html.map DisplayModeMsg <|
-        case filter of
-            Category categoryFilter ->
-                DisplayMode.view categoryFilter.displayMode
+    case filter of
+        Category categoryFilter ->
+            Collapse.view categoryFilter.collapse
+                categoryFilter.name
+                (Html.map DisplayModeMsg (DisplayMode.view categoryFilter.displayMode))
 
-            Object objectFilter ->
-                DisplayMode.view objectFilter.displayMode
+        Object objectFilter ->
+            Collapse.view objectFilter.collapse
+                objectFilter.name
+                (Html.map DisplayModeMsg (DisplayMode.view objectFilter.displayMode))
 
 
 toSearchParams : Filter -> List ( String, Encode.Value )
@@ -107,8 +118,50 @@ toSearchParams filter =
                         Nothing ->
                             []
 
-                _ ->
-                    []
+                DisplayMode.Checkboxes checkboxesModel ->
+                    let
+                        selectedIds =
+                            Set.toList checkboxesModel.selectedResources
+                                |> List.map String.fromInt
+                    in
+                    if List.isEmpty selectedIds then
+                        []
 
-        Object _ ->
-            []
+                    else
+                        [ ( "cat", Encode.list Encode.string selectedIds ) ]
+
+                DisplayMode.MultiSelect multiselectModel ->
+                    if List.isEmpty multiselectModel.selected then
+                        []
+
+                    else
+                        [ ( "cat", Encode.list Encode.int multiselectModel.selected ) ]
+
+        Object objectFilter ->
+            case objectFilter.displayMode of
+                DisplayMode.Dropdown dropdownModel ->
+                    case dropdownModel.selectedResource of
+                        Just resource ->
+                            [ ( "hasobject", Encode.int resource.id ) ]
+
+                        Nothing ->
+                            []
+
+                DisplayMode.Checkboxes checkboxesModel ->
+                    let
+                        selectedIds =
+                            Set.toList checkboxesModel.selectedResources
+                                |> List.map String.fromInt
+                    in
+                    if List.isEmpty selectedIds then
+                        []
+
+                    else
+                        [ ( "hasanyobject", Encode.list Encode.string selectedIds ) ]
+
+                DisplayMode.MultiSelect multiselectModel ->
+                    if List.isEmpty multiselectModel.selected then
+                        []
+
+                    else
+                        [ ( "hasanyobject", Encode.list Encode.int multiselectModel.selected ) ]

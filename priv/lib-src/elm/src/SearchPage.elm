@@ -105,11 +105,9 @@ view model =
                 []
             ]
         , div [ class "c-search-filters" ]
-            [ div [ class "filter-block" ]
-                (Dict.toList model.filters
-                    |> List.map (\( id, filter ) -> Html.map (FilterMsg id) (Filter.view filter))
-                )
-            ]
+            (Dict.toList model.filters
+                |> List.map (\( id, filter ) -> Html.map (FilterMsg id) (Filter.view filter))
+            )
         , div [ class "c-search-results" ]
             [ if List.isEmpty model.results then
                 text "No results found."

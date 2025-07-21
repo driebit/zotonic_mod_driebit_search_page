@@ -1,6 +1,8 @@
 module DisplayMode exposing (..)
 
+import DisplayMode.Checkboxes as Checkboxes
 import DisplayMode.Dropdown as Dropdown
+import DisplayMode.Multiselect as Multiselect
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode as Decode exposing (Decoder)
@@ -9,14 +11,14 @@ import Resource exposing (Resource)
 
 type DisplayMode
     = Dropdown Dropdown.Model
-    | Checkboxes
-    | MultiSelect
+    | Checkboxes Checkboxes.Model
+    | MultiSelect Multiselect.Model
 
 
 type Msg
     = DropdownMsg Dropdown.Msg
-    | CheckboxMsg
-    | MultiSelectMsg
+    | CheckboxMsg Checkboxes.Msg
+    | MultiSelectMsg Multiselect.Msg
 
 
 update : Msg -> DisplayMode -> DisplayMode
@@ -30,11 +32,21 @@ update msg displayMode =
                 _ ->
                     displayMode
 
-        CheckboxMsg ->
-            Checkboxes
+        CheckboxMsg checkboxesMsg ->
+            case displayMode of
+                Checkboxes model ->
+                    Checkboxes (Checkboxes.update checkboxesMsg model)
 
-        MultiSelectMsg ->
-            MultiSelect
+                _ ->
+                    displayMode
+
+        MultiSelectMsg multiselectMsg ->
+            case displayMode of
+                MultiSelect model ->
+                    MultiSelect (Multiselect.update multiselectMsg model)
+
+                _ ->
+                    displayMode
 
 
 fromJson : String -> List Resource -> Decoder DisplayMode
@@ -47,10 +59,10 @@ fromJson id options =
                         Decode.succeed (Dropdown (Dropdown.init id options))
 
                     "checkboxes" ->
-                        Decode.succeed Checkboxes
+                        Decode.succeed (Checkboxes (Checkboxes.init options))
 
                     "multiselect" ->
-                        Decode.succeed MultiSelect
+                        Decode.succeed (MultiSelect (Multiselect.init options))
 
                     "default" ->
                         Decode.succeed (Dropdown (Dropdown.init id options))
@@ -66,8 +78,8 @@ view displayMode =
         Dropdown dropdownModel ->
             Html.map DropdownMsg (Dropdown.view dropdownModel)
 
-        Checkboxes ->
-            div [] [ text "Checkboxes not implemented yet" ]
+        Checkboxes model ->
+            Html.map CheckboxMsg (Checkboxes.view model)
 
-        MultiSelect ->
-            div [] [ text "MultiSelect not implemented yet" ]
+        MultiSelect model ->
+            Html.map MultiSelectMsg (Multiselect.view model)
