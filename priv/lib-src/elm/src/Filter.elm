@@ -1,6 +1,7 @@
 module Filter exposing (..)
 
 import Collapse exposing (Collapse)
+import DateDisplayMode exposing (DateDisplayMode)
 import DisplayMode exposing (DisplayMode)
 import DisplayMode.Dropdown
 import Html exposing (..)
@@ -13,6 +14,8 @@ import Set
 type Filter
     = Category CategoryFilter
     | Object ObjectFilter
+    | Date DateFilter
+    | UnknownFilter
 
 
 type alias CategoryFilter =
@@ -33,8 +36,18 @@ type alias ObjectFilter =
     }
 
 
+type alias DateFilter =
+    { name : String
+    , displayMode : DateDisplayMode
+    , id : String
+    , property : String
+    , collapse : Collapse
+    }
+
+
 type Msg
     = DisplayModeMsg DisplayMode.Msg
+    | DateDisplayModeMsg DateDisplayMode.Msg
     | CollapseMsg Collapse.Msg
 
 
@@ -46,20 +59,39 @@ update msg filter =
                 DisplayModeMsg displayModeMsg ->
                     Category { categoryFilter | displayMode = DisplayMode.update displayModeMsg categoryFilter.displayMode }
 
-                CollapseMsg collapseMsg ->
-                    Category { categoryFilter | collapse = Collapse.update collapseMsg categoryFilter.collapse }
+                _ ->
+                    filter
 
         Object objectFilter ->
             case msg of
                 DisplayModeMsg displayModeMsg ->
                     Object { objectFilter | displayMode = DisplayMode.update displayModeMsg objectFilter.displayMode }
 
-                CollapseMsg collapseMsg ->
-                    Object { objectFilter | collapse = Collapse.update collapseMsg objectFilter.collapse }
+                _ ->
+                    filter
+
+        Date dateFilter ->
+            case msg of
+                DateDisplayModeMsg dateDisplayModeMsg ->
+                    Date { dateFilter | displayMode = DateDisplayMode.update dateDisplayModeMsg dateFilter.displayMode }
+
+                _ ->
+                    filter
+
+        UnknownFilter ->
+            filter
 
 
 fromJson : Decoder Filter
 fromJson =
+    Decode.oneOf
+        [ decodeTextualFilter
+        , decodeDateFilter
+        ]
+
+
+decodeTextualFilter : Decoder Filter
+decodeTextualFilter =
     Decode.map6 toFilter
         (Decode.field "type" Decode.string)
         (Decode.field "title" Decode.string)
@@ -69,26 +101,47 @@ fromJson =
         (Decode.field "name" Decode.string)
 
 
+decodeDateFilter : Decoder Filter
+decodeDateFilter =
+    Decode.map6 toDateFilter
+        (Decode.field "type" Decode.string)
+        (Decode.field "filter_title" Decode.string)
+        (Decode.field "displaymode" DateDisplayMode.fromJson)
+        (Decode.field "collapse" Collapse.fromJson)
+        (Decode.field "name" Decode.string)
+        (Decode.field "date_prop" Decode.string)
+
+
 toFilter : String -> String -> Decode.Value -> Collapse -> List Resource -> String -> Filter
 toFilter type_ name displayModeEncoded collapse options id =
     let
-        displayMode =
-            case Decode.decodeValue (DisplayMode.fromJson id options) displayModeEncoded of
-                Ok dm ->
-                    dm
-
-                Err _ ->
-                    DisplayMode.Dropdown (DisplayMode.Dropdown.init id options)
+        maybeDisplayMode =
+            Decode.decodeValue (DisplayMode.fromJson id options) displayModeEncoded |> Result.toMaybe
     in
-    case type_ of
-        "category_filter" ->
-            Category { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
+    case maybeDisplayMode of
+        Just displayMode ->
+            case type_ of
+                "category_filter" ->
+                    Category { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
 
-        "object_filter" ->
-            Object { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
+                "object_filter" ->
+                    Object { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
+
+                _ ->
+                    UnknownFilter
+
+        Nothing ->
+            UnknownFilter
+
+
+toDateFilter : String -> String -> DateDisplayMode -> Collapse -> String -> String -> Filter
+toDateFilter type_ title displayMode collapse name property =
+    case type_ of
+        "date_filter" ->
+            Date { id = name, displayMode = displayMode, name = title, property = property, collapse = collapse }
 
         _ ->
-            Category { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
+            UnknownFilter
 
 
 view : Filter -> Html Msg
@@ -103,6 +156,14 @@ view filter =
             Collapse.view objectFilter.collapse
                 objectFilter.name
                 (Html.map DisplayModeMsg (DisplayMode.view objectFilter.displayMode))
+
+        Date dateFilter ->
+            Collapse.view dateFilter.collapse
+                dateFilter.name
+                (Html.map DateDisplayModeMsg (DateDisplayMode.view dateFilter.displayMode))
+
+        UnknownFilter ->
+            text ""
 
 
 toSearchParams : Filter -> List ( String, Encode.Value )
@@ -165,3 +226,9 @@ toSearchParams filter =
 
                     else
                         [ ( "hasanyobject", Encode.list Encode.int multiselectModel.selected ) ]
+
+        Date dateFilter ->
+            []
+
+        UnknownFilter ->
+            []

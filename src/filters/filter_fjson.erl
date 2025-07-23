@@ -73,9 +73,9 @@ fjson(#{<<"type">>:= <<"category_filter">>} = Filter, Context) ->
 
     jsx:encode(Props);
 
+
 fjson(Filter, _Context) ->
-    %% For other filter types, we can return an empty JSON object or handle them as needed
-    jsx:encode(#{}).
+    jsx:encode(Filter).
 
 add_title(Ids, Context) ->
     lists:map(fun(R) -> #{id => m_rsc:p(R, id, Context), title => z_trans:lookup_fallback(m_rsc:p(R, title, Context), Context)} end, Ids).

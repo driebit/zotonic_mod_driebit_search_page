@@ -32,5 +32,13 @@
                     console.log("Error on call to " + "bridge/origin/model/search/get", e);
                 });
             });
+
+        cotonic.ready.then(
+            function() {
+                // add extra timeout for subscribing to a topic
+                setTimeout(function() { 
+                    searchApp.ports.connected.send(true);
+                }, 100);
+            });
     </script>
 {% endblock %}

@@ -18,6 +18,9 @@ port searchPageCall : Encode.Value -> Cmd msg
 port searchPageReply : (Encode.Value -> msg) -> Sub msg
 
 
+port connected : (Bool -> msg) -> Sub msg
+
+
 main : Program Decode.Value Model Msg
 main =
     Browser.element
@@ -31,8 +34,16 @@ main =
 type alias Model =
     { filters : Dict String Filter
     , fullTextSearchQuery : String
-    , results : List Int
+    , results : SearchResult
     }
+
+
+type SearchResult
+    = NotAsked
+    | WaitingForConnection
+    | Loading
+    | Loaded (List Int)
+    | Error String
 
 
 init : Decode.Value -> ( Model, Cmd Msg )
@@ -47,7 +58,7 @@ init flags =
             List.map (\filter -> ( idFromFilter filter, filter )) filters
                 |> Dict.fromList
     in
-    ( { filters = filterDict, results = [], fullTextSearchQuery = "" }, searchPageCall <| Encode.object [] )
+    ( { filters = filterDict, results = WaitingForConnection, fullTextSearchQuery = "" }, Cmd.none )
 
 
 type Msg
@@ -55,6 +66,7 @@ type Msg
     | FilterMsg String Filter.Msg
     | SearchPageReply Decode.Value
     | FullTextSearchInput String
+    | CotonicReady Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -81,14 +93,10 @@ update msg model =
         SearchPageReply reply ->
             case Decode.decodeValue (Decode.at [ "reply", "payload", "result", "result" ] (Decode.list Decode.int)) reply of
                 Ok results ->
-                    ( { model | results = results }, Cmd.none )
+                    ( { model | results = Loaded results }, Cmd.none )
 
                 Err err ->
-                    let
-                        _ =
-                            Debug.log "Error decoding search results" (Decode.errorToString err)
-                    in
-                    ( model, Cmd.none )
+                    ( { model | results = Error (Decode.errorToString err) }, Cmd.none )
 
         FullTextSearchInput query ->
             let
@@ -103,6 +111,9 @@ update msg model =
             ( updatedModel
             , searchPageCall (Encode.object <| ( "text", Encode.string query ) :: encodedSearchFilters)
             )
+
+        CotonicReady _ ->
+            ( { model | results = Loading }, searchPageCall <| Encode.object <| [ ( "text", Encode.string "" ) ] )
 
 
 
@@ -128,19 +139,41 @@ view model =
                 |> List.map (\( id, filter ) -> Html.map (FilterMsg id) (Filter.view filter))
             )
         , div [ class "c-search-results" ]
-            [ if List.isEmpty model.results then
-                text "No results found."
-
-              else
-                ul []
-                    (List.map (\resultId -> li [] [ text ("Result ID: " ++ String.fromInt resultId) ]) model.results)
+            [ viewResults model.results
             ]
         ]
 
 
+viewResults : SearchResult -> Html Msg
+viewResults results =
+    case results of
+        NotAsked ->
+            text "No search has been performed yet."
+
+        Loading ->
+            text "Loading results..."
+
+        WaitingForConnection ->
+            text "Waiting for connection..."
+
+        Loaded resultIds ->
+            if List.isEmpty resultIds then
+                text "No results found."
+
+            else
+                ul []
+                    (List.map (\resultId -> li [] [ text ("Result ID: " ++ String.fromInt resultId) ]) resultIds)
+
+        Error errorMsg ->
+            div [ class "error" ] [ text ("Error: " ++ errorMsg) ]
+
+
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    searchPageReply SearchPageReply
+    Sub.batch
+        [ searchPageReply SearchPageReply
+        , connected CotonicReady
+        ]
 
 
 idFromFilter : Filter -> String
@@ -151,3 +184,9 @@ idFromFilter filter =
 
         Filter.Object objectFilter ->
             objectFilter.id
+
+        Filter.Date dateFilter ->
+            dateFilter.id
+
+        Filter.UnknownFilter ->
+            "unknown_filter"
