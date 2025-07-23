@@ -1,14 +1,18 @@
 port module SearchPage exposing (..)
 
 import Browser
+import Cotonic exposing (CotonicCall, searchPageTopic, templateTopic)
 import Dict exposing (Dict)
 import DisplayMode exposing (DisplayMode)
 import Filter exposing (Filter)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Parser
+import Html.Parser.Util
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Task exposing (Task)
 import Time exposing (Month(..))
 
 
@@ -35,6 +39,7 @@ type alias Model =
     { filters : Dict String Filter
     , fullTextSearchQuery : String
     , results : SearchResult
+    , templateCache : Dict Int (List (Html Msg))
     }
 
 
@@ -58,7 +63,13 @@ init flags =
             List.map (\filter -> ( idFromFilter filter, filter )) filters
                 |> Dict.fromList
     in
-    ( { filters = filterDict, results = WaitingForConnection, fullTextSearchQuery = "" }, Cmd.none )
+    ( { filters = filterDict
+      , results = WaitingForConnection
+      , fullTextSearchQuery = ""
+      , templateCache = Dict.empty
+      }
+    , Cmd.none
+    )
 
 
 type Msg
@@ -86,14 +97,57 @@ update msg model =
                     updatedFilters
                         |> Dict.toList
                         |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-                        |> Encode.object
+                        |> Cotonic.searchPageTopic
+                        |> Cotonic.toJson
             in
             ( { model | filters = updatedFilters }, searchPageCall encodedSearchParams )
 
         SearchPageReply reply ->
-            case Decode.decodeValue (Decode.at [ "reply", "payload", "result", "result" ] (Decode.list Decode.int)) reply of
-                Ok results ->
-                    ( { model | results = Loaded results }, Cmd.none )
+            case Decode.decodeValue (Decode.field "topic" Decode.string) reply |> Result.map (String.split "/") of
+                Ok [ "SearchReply" ] ->
+                    case Decode.decodeValue (Decode.at [ "reply", "payload", "result", "result" ] (Decode.list Decode.int)) reply of
+                        Ok results ->
+                            let
+                                templateCalls =
+                                    results
+                                        |> List.map (\id -> templateTopic id)
+                                        |> List.map Cotonic.toJson
+                                        |> List.map searchPageCall
+                            in
+                            ( { model | results = Loaded results }, Cmd.batch templateCalls )
+
+                        Err err ->
+                            ( { model | results = Error (Decode.errorToString err) }, Cmd.none )
+
+                Ok [ "TemplateReply", idString ] ->
+                    case Decode.decodeValue (Decode.at [ "reply", "payload", "result" ] Decode.string) reply of
+                        Ok template ->
+                            let
+                                markdownOptions =
+                                    { githubFlavored = Just { tables = False, breaks = False }
+                                    , defaultHighlighting = Nothing
+                                    , sanitize = False
+                                    , smartypants = False
+                                    }
+
+                                parsedTemplateResult =
+                                    Html.Parser.run template
+
+                                newTemplateCache =
+                                    case ( String.toInt idString, parsedTemplateResult ) of
+                                        ( Just id, Ok parsedTemplate ) ->
+                                            Dict.insert id (Html.Parser.Util.toVirtualDom parsedTemplate) model.templateCache
+
+                                        _ ->
+                                            model.templateCache
+                            in
+                            ( { model | templateCache = newTemplateCache }, Cmd.none )
+
+                        Err err ->
+                            ( { model | results = Error (Decode.errorToString err) }, Cmd.none )
+
+                Ok _ ->
+                    ( model, Cmd.none )
 
                 Err err ->
                     ( { model | results = Error (Decode.errorToString err) }, Cmd.none )
@@ -107,13 +161,16 @@ update msg model =
                     model.filters
                         |> Dict.toList
                         |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+                        |> List.append [ ( "full_text_search", Encode.string query ) ]
+                        |> Cotonic.searchPageTopic
+                        |> Cotonic.toJson
             in
             ( updatedModel
-            , searchPageCall (Encode.object <| ( "text", Encode.string query ) :: encodedSearchFilters)
+            , searchPageCall encodedSearchFilters
             )
 
         CotonicReady _ ->
-            ( { model | results = Loading }, searchPageCall <| Encode.object <| [ ( "text", Encode.string "" ) ] )
+            ( { model | results = Loading }, Cotonic.searchPageTopic [] |> Cotonic.toJson |> searchPageCall )
 
 
 
@@ -139,13 +196,13 @@ view model =
                 |> List.map (\( id, filter ) -> Html.map (FilterMsg id) (Filter.view filter))
             )
         , div [ class "c-search-results" ]
-            [ viewResults model.results
+            [ viewResults model.results model.templateCache
             ]
         ]
 
 
-viewResults : SearchResult -> Html Msg
-viewResults results =
+viewResults : SearchResult -> Dict Int (List (Html Msg)) -> Html Msg
+viewResults results templateCache =
     case results of
         NotAsked ->
             text "No search has been performed yet."
@@ -157,12 +214,16 @@ viewResults results =
             text "Waiting for connection..."
 
         Loaded resultIds ->
+            let
+                resultTemplates =
+                    resultIds
+                        |> List.map (\id -> Dict.get id templateCache |> Maybe.withDefault [ text "Template not found" ])
+            in
             if List.isEmpty resultIds then
                 text "No results found."
 
             else
-                ul []
-                    (List.map (\resultId -> li [] [ text ("Result ID: " ++ String.fromInt resultId) ]) resultIds)
+                ul [ class "list" ] (List.map (div []) resultTemplates)
 
         Error errorMsg ->
             div [ class "error" ] [ text ("Error: " ++ errorMsg) ]

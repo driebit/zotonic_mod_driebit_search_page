@@ -23,13 +23,13 @@
 
         searchApp.ports.searchPageCall.subscribe(function(call) {
             console.log(call);
-            cotonic.broker.call("bridge/origin/model/search/get", call, {timeout: 5000})
+            cotonic.broker.call(call.topic, call.parameters, {timeout: 5000})
                 .then(function(reply) {
                     console.log(reply);
-                    searchApp.ports.searchPageReply.send({topic: "reply/payload/result/result", reply: reply});
+                    searchApp.ports.searchPageReply.send({topic: call.replyTopic, reply: reply, });
                 })
                 .catch(function(e) {
-                    console.log("Error on call to " + "bridge/origin/model/search/get", e);
+                    console.log("Error on call to " + call.topic, e);
                 });
             });
 
