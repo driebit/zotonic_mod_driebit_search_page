@@ -40,6 +40,7 @@ type alias Model =
     , fullTextSearchQuery : String
     , results : SearchResult
     , templateCache : Dict Int (List (Html Msg))
+    , page : Int
     }
 
 
@@ -67,6 +68,7 @@ init flags =
       , results = WaitingForConnection
       , fullTextSearchQuery = ""
       , templateCache = Dict.empty
+      , page = 1
       }
     , Cmd.none
     )
@@ -78,6 +80,8 @@ type Msg
     | SearchPageReply Decode.Value
     | FullTextSearchInput String
     | CotonicReady Bool
+    | NextPage
+    | PreviousPage
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -172,6 +176,44 @@ update msg model =
         CotonicReady _ ->
             ( { model | results = Loading }, Cotonic.searchPageTopic [] |> Cotonic.toJson |> searchPageCall )
 
+        NextPage ->
+            let
+                nextPage =
+                    model.page + 1
+
+                encodedSearchParams =
+                    model.filters
+                        |> Dict.toList
+                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+                        |> List.append [ ( "page", Encode.int nextPage ) ]
+                        |> Cotonic.searchPageTopic
+                        |> Cotonic.toJson
+            in
+            ( { model | page = nextPage }
+            , searchPageCall encodedSearchParams
+            )
+
+        PreviousPage ->
+            let
+                previousPage =
+                    if model.page > 1 then
+                        model.page - 1
+
+                    else
+                        1
+
+                encodedSearchParams =
+                    model.filters
+                        |> Dict.toList
+                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+                        |> List.append [ ( "page", Encode.int previousPage ) ]
+                        |> Cotonic.searchPageTopic
+                        |> Cotonic.toJson
+            in
+            ( { model | page = previousPage }
+            , searchPageCall encodedSearchParams
+            )
+
 
 
 -- VIEW
@@ -198,6 +240,8 @@ view model =
         , div [ class "c-search-results" ]
             [ viewResults model.results model.templateCache
             ]
+        , div [ class "c-pagination" ]
+            [ viewPagination model.page ]
         ]
 
 
@@ -227,6 +271,25 @@ viewResults results templateCache =
 
         Error errorMsg ->
             div [ class "error" ] [ text ("Error: " ++ errorMsg) ]
+
+
+viewPagination : Int -> Html Msg
+viewPagination currentPage =
+    div [ class "pagination" ]
+        [ button
+            [ class "pagination__button"
+            , onClick PreviousPage
+            , disabled (currentPage <= 1)
+            ]
+            [ text "Previous" ]
+        , span [ class "pagination__current-page" ] [ text (String.fromInt currentPage) ]
+        , button
+            [ class "pagination__button"
+            , onClick NextPage
+            , disabled False -- This could be replaced with a condition to disable if there are no more results
+            ]
+            [ text "Next" ]
+        ]
 
 
 subscriptions : Model -> Sub Msg
