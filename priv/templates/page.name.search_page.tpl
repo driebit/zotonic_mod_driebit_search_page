@@ -9,12 +9,8 @@
 
     <script type="text/javascript" nonce="{{ m.req.csp_nonce }}">
 
-        const blocks = 
-            [{% for block in m.rsc[`search_page`].blocks %}
-                {{ block|fjson }},
-            {% endfor %}
-            ]
-        ;
+        const blocks = {{ m.search_filters.json[id] }};
+
 
         console.log(blocks);
 

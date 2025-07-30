@@ -3,7 +3,6 @@ port module SearchPage exposing (..)
 import Browser
 import Cotonic exposing (CotonicCall, searchPageTopic, templateTopic)
 import Dict exposing (Dict)
-import DisplayMode exposing (DisplayMode)
 import Filter exposing (Filter)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -61,7 +60,7 @@ init flags =
                 |> Result.withDefault []
 
         filterDict =
-            List.map (\filter -> ( idFromFilter filter, filter )) filters
+            List.map (\filter -> ( filter.id, filter )) filters
                 |> Dict.fromList
     in
     ( { filters = filterDict
@@ -97,14 +96,10 @@ update msg model =
                         (Maybe.map (Filter.update filterMsg))
                         model.filters
 
-                encodedSearchParams =
-                    updatedFilters
-                        |> Dict.toList
-                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-                        |> Cotonic.searchPageTopic
-                        |> Cotonic.toJson
+                updatedModel =
+                    { model | filters = updatedFilters }
             in
-            ( { model | filters = updatedFilters }, searchPageCall encodedSearchParams )
+            ( updatedModel, searchPageCall (encodedSearchParams updatedModel) )
 
         SearchPageReply reply ->
             case Decode.decodeValue (Decode.field "topic" Decode.string) reply |> Result.map (String.split "/") of
@@ -127,13 +122,6 @@ update msg model =
                     case Decode.decodeValue (Decode.at [ "reply", "payload", "result" ] Decode.string) reply of
                         Ok template ->
                             let
-                                markdownOptions =
-                                    { githubFlavored = Just { tables = False, breaks = False }
-                                    , defaultHighlighting = Nothing
-                                    , sanitize = False
-                                    , smartypants = False
-                                    }
-
                                 parsedTemplateResult =
                                     Html.Parser.run template
 
@@ -160,17 +148,9 @@ update msg model =
             let
                 updatedModel =
                     { model | fullTextSearchQuery = query }
-
-                encodedSearchFilters =
-                    model.filters
-                        |> Dict.toList
-                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-                        |> List.append [ ( "full_text_search", Encode.string query ) ]
-                        |> Cotonic.searchPageTopic
-                        |> Cotonic.toJson
             in
             ( updatedModel
-            , searchPageCall encodedSearchFilters
+            , searchPageCall (encodedSearchParams updatedModel)
             )
 
         CotonicReady _ ->
@@ -181,16 +161,11 @@ update msg model =
                 nextPage =
                     model.page + 1
 
-                encodedSearchParams =
-                    model.filters
-                        |> Dict.toList
-                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-                        |> List.append [ ( "page", Encode.int nextPage ) ]
-                        |> Cotonic.searchPageTopic
-                        |> Cotonic.toJson
+                updatedModel =
+                    { model | page = nextPage }
             in
-            ( { model | page = nextPage }
-            , searchPageCall encodedSearchParams
+            ( updatedModel
+            , searchPageCall (encodedSearchParamsWithPage updatedModel)
             )
 
         PreviousPage ->
@@ -202,17 +177,33 @@ update msg model =
                     else
                         1
 
-                encodedSearchParams =
-                    model.filters
-                        |> Dict.toList
-                        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-                        |> List.append [ ( "page", Encode.int previousPage ) ]
-                        |> Cotonic.searchPageTopic
-                        |> Cotonic.toJson
+                updatedModel =
+                    { model | page = previousPage }
             in
-            ( { model | page = previousPage }
-            , searchPageCall encodedSearchParams
+            ( updatedModel
+            , searchPageCall (encodedSearchParamsWithPage updatedModel)
             )
+
+
+encodedSearchParams : Model -> Decode.Value
+encodedSearchParams model =
+    model.filters
+        |> Dict.toList
+        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+        |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
+        |> Cotonic.searchPageTopic
+        |> Cotonic.toJson
+
+
+encodedSearchParamsWithPage : Model -> Decode.Value
+encodedSearchParamsWithPage model =
+    model.filters
+        |> Dict.toList
+        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+        |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
+        |> List.append [ ( "page", Encode.int model.page ) ]
+        |> Cotonic.searchPageTopic
+        |> Cotonic.toJson
 
 
 
@@ -298,19 +289,3 @@ subscriptions _ =
         [ searchPageReply SearchPageReply
         , connected CotonicReady
         ]
-
-
-idFromFilter : Filter -> String
-idFromFilter filter =
-    case filter of
-        Filter.Category categoryFilter ->
-            categoryFilter.id
-
-        Filter.Object objectFilter ->
-            objectFilter.id
-
-        Filter.Date dateFilter ->
-            dateFilter.id
-
-        Filter.UnknownFilter ->
-            "unknown_filter"

@@ -1,8 +1,10 @@
-module DisplayMode.Multiselect exposing (..)
+module TextualComponent.Multiselect exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode as Decode
+import Json.Encode as Encode
 import Resource exposing (Resource)
 import Time exposing (Month(..))
 
@@ -117,3 +119,26 @@ viewOption selectedOptions option =
         [ input [ type_ "checkbox", checked isSelected, id (String.fromInt option.id) ] []
         , label [ for (String.fromInt option.id) ] [ text option.title ]
         ]
+
+
+encodedValue : Maybe String -> Model -> Maybe Encode.Value
+encodedValue maybePredicate model =
+    let
+        encodeList predicate =
+            model.selected
+                |> List.map (\id -> [ predicate, String.fromInt id ])
+                |> Encode.list (Encode.list Encode.string)
+    in
+    if List.isEmpty model.selected then
+        Nothing
+
+    else
+        case maybePredicate of
+            Just predicate ->
+                Just (encodeList predicate)
+
+            Nothing ->
+                model.selected
+                    |> List.map String.fromInt
+                    |> Encode.list Encode.string
+                    |> Just

@@ -1,4 +1,4 @@
-module DateDisplayMode.FixedRanges exposing (..)
+module DateComponent.FixedRanges exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -104,3 +104,8 @@ toString range =
 
         Custom start end ->
             "Custom: " ++ start ++ " to " ++ end
+
+
+encodedValue : Model -> Maybe Decode.Value
+encodedValue model =
+    Nothing

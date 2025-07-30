@@ -1,234 +1,165 @@
 module Filter exposing (..)
 
 import Collapse exposing (Collapse)
-import DateDisplayMode exposing (DateDisplayMode)
-import DisplayMode exposing (DisplayMode)
-import DisplayMode.Dropdown
+import DateComponent exposing (DateComponent)
 import Html exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import Resource exposing (Resource)
-import Set
+import Resource
+import TextualComponent exposing (TextualComponent)
 
 
-type Filter
-    = Category CategoryFilter
-    | Object ObjectFilter
-    | Date DateFilter
-    | UnknownFilter
-
-
-type alias CategoryFilter =
-    { name : String
-    , displayMode : DisplayMode
+type alias Filter =
+    { title : String
     , collapse : Collapse
-    , options : List Resource
     , id : String
+    , component : Component
+    , filterType : FilterType
     }
 
 
-type alias ObjectFilter =
-    { name : String
-    , displayMode : DisplayMode
-    , collapse : Collapse
-    , options : List Resource
-    , id : String
-    }
+type Component
+    = TextualComponent TextualComponent
+    | DateComponent DateComponent
 
 
-type alias DateFilter =
-    { name : String
-    , displayMode : DateDisplayMode
-    , id : String
-    , property : String
-    , collapse : Collapse
-    }
+type FilterType
+    = Category
+    | Object (Maybe String)
+    | Date String
 
 
 type Msg
-    = DisplayModeMsg DisplayMode.Msg
-    | DateDisplayModeMsg DateDisplayMode.Msg
-    | CollapseMsg Collapse.Msg
+    = CollapseMsg Collapse.Msg
+    | TextualComponentMsg TextualComponent.Msg
+    | DateComponentMsg DateComponent.Msg
 
 
 update : Msg -> Filter -> Filter
 update msg filter =
-    case filter of
-        Category categoryFilter ->
-            case msg of
-                DisplayModeMsg displayModeMsg ->
-                    Category { categoryFilter | displayMode = DisplayMode.update displayModeMsg categoryFilter.displayMode }
+    case ( msg, filter.component ) of
+        ( TextualComponentMsg textualMsg, TextualComponent textualComponent ) ->
+            { filter | component = TextualComponent <| TextualComponent.update textualMsg textualComponent }
 
-                _ ->
-                    filter
+        ( DateComponentMsg dateMsg, DateComponent dateComponent ) ->
+            { filter | component = DateComponent <| DateComponent.update dateMsg dateComponent }
 
-        Object objectFilter ->
-            case msg of
-                DisplayModeMsg displayModeMsg ->
-                    Object { objectFilter | displayMode = DisplayMode.update displayModeMsg objectFilter.displayMode }
+        ( CollapseMsg collapseMsg, filter_ ) ->
+            filter
 
-                _ ->
-                    filter
-
-        Date dateFilter ->
-            case msg of
-                DateDisplayModeMsg dateDisplayModeMsg ->
-                    Date { dateFilter | displayMode = DateDisplayMode.update dateDisplayModeMsg dateFilter.displayMode }
-
-                _ ->
-                    filter
-
-        UnknownFilter ->
+        _ ->
             filter
 
 
 fromJson : Decoder Filter
 fromJson =
-    Decode.oneOf
-        [ decodeTextualFilter
-        , decodeDateFilter
-        ]
+    decodeBaseFilterProps
+        |> Decode.andThen
+            (\baseFilterProps ->
+                decodeSpecificFilterProps baseFilterProps.type_ baseFilterProps.name
+                    |> Decode.map
+                        (\( component, filterType ) ->
+                            { title = baseFilterProps.name
+                            , collapse = baseFilterProps.collapse
+                            , id = baseFilterProps.id
+                            , component = component
+                            , filterType = filterType
+                            }
+                        )
+            )
 
 
-decodeTextualFilter : Decoder Filter
-decodeTextualFilter =
-    Decode.map6 toFilter
-        (Decode.field "type" Decode.string)
+type alias BaseFilterProps =
+    { name : String
+    , collapse : Collapse
+    , id : String
+    , type_ : String
+    }
+
+
+decodeBaseFilterProps : Decoder BaseFilterProps
+decodeBaseFilterProps =
+    Decode.map4 BaseFilterProps
         (Decode.field "title" Decode.string)
-        (Decode.field "display_mode" Decode.value)
         (Decode.field "collapse" Collapse.fromJson)
-        (Decode.field "options" (Decode.list Resource.fromJson))
         (Decode.field "name" Decode.string)
-
-
-decodeDateFilter : Decoder Filter
-decodeDateFilter =
-    Decode.map6 toDateFilter
         (Decode.field "type" Decode.string)
-        (Decode.field "filter_title" Decode.string)
-        (Decode.field "displaymode" DateDisplayMode.fromJson)
-        (Decode.field "collapse" Collapse.fromJson)
-        (Decode.field "name" Decode.string)
-        (Decode.field "date_prop" Decode.string)
 
 
-toFilter : String -> String -> Decode.Value -> Collapse -> List Resource -> String -> Filter
-toFilter type_ name displayModeEncoded collapse options id =
-    let
-        maybeDisplayMode =
-            Decode.decodeValue (DisplayMode.fromJson id options) displayModeEncoded |> Result.toMaybe
-    in
-    case maybeDisplayMode of
-        Just displayMode ->
-            case type_ of
-                "category_filter" ->
-                    Category { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
-
-                "object_filter" ->
-                    Object { name = name, displayMode = displayMode, collapse = collapse, options = options, id = id }
-
-                _ ->
-                    UnknownFilter
-
-        Nothing ->
-            UnknownFilter
-
-
-toDateFilter : String -> String -> DateDisplayMode -> Collapse -> String -> String -> Filter
-toDateFilter type_ title displayMode collapse name property =
+decodeSpecificFilterProps : String -> String -> Decoder ( Component, FilterType )
+decodeSpecificFilterProps type_ title =
     case type_ of
+        "category_filter" ->
+            Decode.map2 (\toComponent options -> ( TextualComponent (toComponent title options), Category ))
+                (Decode.field "component" TextualComponent.fromJson)
+                (Decode.field "options" (Decode.list Resource.fromJson))
+
+        "object_filter" ->
+            Decode.map3 (\toComponent options predicate -> ( TextualComponent (toComponent title options), Object predicate ))
+                (Decode.field "component" TextualComponent.fromJson)
+                (Decode.field "options" (Decode.list Resource.fromJson))
+                (Decode.oneOf
+                    [ Decode.field "predicate" (Decode.maybe Decode.string)
+                    , Decode.succeed Nothing
+                    ]
+                )
+
         "date_filter" ->
-            Date { id = name, displayMode = displayMode, name = title, property = property, collapse = collapse }
+            Decode.map2 (\component dateProp -> ( DateComponent component, Date dateProp ))
+                (Decode.field "component" DateComponent.fromJson)
+                (Decode.field "date_prop" Decode.string)
 
         _ ->
-            UnknownFilter
+            Decode.fail ("Unknown filter type: " ++ type_)
 
 
 view : Filter -> Html Msg
 view filter =
-    case filter of
-        Category categoryFilter ->
-            Collapse.view categoryFilter.collapse
-                categoryFilter.name
-                (Html.map DisplayModeMsg (DisplayMode.view categoryFilter.displayMode))
+    case filter.component of
+        TextualComponent textualComponent ->
+            Collapse.view filter.collapse
+                filter.title
+                (Html.map TextualComponentMsg (TextualComponent.view textualComponent))
 
-        Object objectFilter ->
-            Collapse.view objectFilter.collapse
-                objectFilter.name
-                (Html.map DisplayModeMsg (DisplayMode.view objectFilter.displayMode))
+        DateComponent dateComponent ->
+            Collapse.view filter.collapse
+                filter.title
+                (Html.map DateComponentMsg (DateComponent.view dateComponent))
 
-        Date dateFilter ->
-            Collapse.view dateFilter.collapse
-                dateFilter.name
-                (Html.map DateDisplayModeMsg (DateDisplayMode.view dateFilter.displayMode))
 
-        UnknownFilter ->
-            text ""
+componentToValue : Maybe String -> Component -> Maybe Encode.Value
+componentToValue maybePredicate component =
+    case component of
+        TextualComponent textualComponent ->
+            TextualComponent.encodedValue maybePredicate textualComponent
+
+        DateComponent dateComponent ->
+            DateComponent.encodedValue dateComponent
 
 
 toSearchParams : Filter -> List ( String, Encode.Value )
 toSearchParams filter =
-    case filter of
-        Category categoryFilter ->
-            case categoryFilter.displayMode of
-                DisplayMode.Dropdown dropdownModel ->
-                    case dropdownModel.selectedResource of
-                        Just resource ->
-                            [ ( "cat", Encode.int resource.id ) ]
+    case filter.filterType of
+        Category ->
+            case componentToValue Nothing filter.component of
+                Just value ->
+                    [ ( "cat", value ) ]
 
-                        Nothing ->
-                            []
+                Nothing ->
+                    []
 
-                DisplayMode.Checkboxes checkboxesModel ->
-                    let
-                        selectedIds =
-                            Set.toList checkboxesModel.selectedResources
-                                |> List.map String.fromInt
-                    in
-                    if List.isEmpty selectedIds then
-                        []
+        Object maybePredicate ->
+            case componentToValue maybePredicate filter.component of
+                Just value ->
+                    [ ( "hasanyobject", value ) ]
 
-                    else
-                        [ ( "cat", Encode.list Encode.string selectedIds ) ]
+                Nothing ->
+                    []
 
-                DisplayMode.MultiSelect multiselectModel ->
-                    if List.isEmpty multiselectModel.selected then
-                        []
+        Date dateProp ->
+            case componentToValue Nothing filter.component of
+                Just value ->
+                    [ ( "date", Encode.string dateProp ), ( "value", value ) ]
 
-                    else
-                        [ ( "cat", Encode.list Encode.int multiselectModel.selected ) ]
-
-        Object objectFilter ->
-            case objectFilter.displayMode of
-                DisplayMode.Dropdown dropdownModel ->
-                    case dropdownModel.selectedResource of
-                        Just resource ->
-                            [ ( "hasobject", Encode.int resource.id ) ]
-
-                        Nothing ->
-                            []
-
-                DisplayMode.Checkboxes checkboxesModel ->
-                    let
-                        selectedIds =
-                            Set.toList checkboxesModel.selectedResources
-                                |> List.map String.fromInt
-                    in
-                    if List.isEmpty selectedIds then
-                        []
-
-                    else
-                        [ ( "hasanyobject", Encode.list Encode.string selectedIds ) ]
-
-                DisplayMode.MultiSelect multiselectModel ->
-                    if List.isEmpty multiselectModel.selected then
-                        []
-
-                    else
-                        [ ( "hasanyobject", Encode.list Encode.int multiselectModel.selected ) ]
-
-        Date dateFilter ->
-            []
-
-        UnknownFilter ->
-            []
+                Nothing ->
+                    []

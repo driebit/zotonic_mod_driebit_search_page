@@ -1,7 +1,8 @@
-module DateDisplayMode.Calendar exposing (..)
+module DateComponent.Calendar exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Json.Decode as Decode
 
 
 type alias Model =
@@ -28,3 +29,8 @@ view : model -> Html msg
 view _ =
     div [ class "calendar-view" ]
         [ text "Calendar view is not yet implemented." ]
+
+
+encodedValue : Model -> Maybe Decode.Value
+encodedValue _ =
+    Nothing

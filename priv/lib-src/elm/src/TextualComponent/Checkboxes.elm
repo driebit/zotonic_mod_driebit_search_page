@@ -1,8 +1,10 @@
-module DisplayMode.Checkboxes exposing (..)
+module TextualComponent.Checkboxes exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onCheck)
+import Json.Decode as Decode exposing (maybe)
+import Json.Encode as Encode exposing (Value)
 import Resource exposing (Resource)
 import Set exposing (Set)
 
@@ -59,3 +61,28 @@ view { selectedResources, options } =
                 options
             )
         ]
+
+
+encodedValue : Maybe String -> Model -> Maybe Encode.Value
+encodedValue maybePredicate model =
+    let
+        encodeList predicate =
+            model.selectedResources
+                |> Set.toList
+                |> List.map (\id -> [ predicate, String.fromInt id ])
+                |> Encode.list (Encode.list Encode.string)
+    in
+    if Set.isEmpty model.selectedResources then
+        Nothing
+
+    else
+        case maybePredicate of
+            Just predicate ->
+                Just (encodeList predicate)
+
+            Nothing ->
+                model.selectedResources
+                    |> Set.toList
+                    |> List.map String.fromInt
+                    |> Encode.list Encode.string
+                    |> Just

@@ -1,9 +1,10 @@
-module DisplayMode.Dropdown exposing (..)
+module TextualComponent.Dropdown exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, onClick)
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Resource exposing (Resource)
 
 
@@ -71,3 +72,15 @@ view { selectedResource, options } =
 onChange : (String -> msg) -> Attribute msg
 onChange toMsg =
     on "change" (Decode.at [ "target", "value" ] Decode.string |> Decode.map toMsg)
+
+
+encodedValue : Maybe String -> Model -> Maybe Decode.Value
+encodedValue maybePredicate model =
+    case maybePredicate of
+        Just predicate ->
+            model.selectedResource
+                |> Maybe.map (\resource -> Encode.list Encode.string [ predicate, String.fromInt resource.id ])
+
+        Nothing ->
+            model.selectedResource
+                |> Maybe.map (\resource -> Encode.string (String.fromInt resource.id))

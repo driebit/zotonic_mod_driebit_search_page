@@ -1,14 +1,13 @@
-module DateDisplayMode exposing (..)
+module DateComponent exposing (..)
 
-import DateDisplayMode.Calendar as Calendar
-import DateDisplayMode.FixedRanges as FixedRanges
+import DateComponent.Calendar as Calendar
+import DateComponent.FixedRanges as FixedRanges
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode as Decode exposing (Decoder)
-import Resource exposing (Resource)
 
 
-type DateDisplayMode
+type DateComponent
     = FixedRanges FixedRanges.Model
     | Calendar Calendar.Model
 
@@ -18,7 +17,7 @@ type Msg
     | CalendarMsg Calendar.Msg
 
 
-update : Msg -> DateDisplayMode -> DateDisplayMode
+update : Msg -> DateComponent -> DateComponent
 update msg displayMode =
     case ( msg, displayMode ) of
         ( FixedRangesMsg fixedRangesMsg, FixedRanges model ) ->
@@ -31,13 +30,13 @@ update msg displayMode =
             displayMode
 
 
-fromJson : Decoder DateDisplayMode
+fromJson : Decoder DateComponent
 fromJson =
     Decode.string
         |> Decode.andThen
             (\str ->
                 case str of
-                    "buttons" ->
+                    "fixed_ranges" ->
                         Decode.succeed (FixedRanges (FixedRanges.init Nothing))
 
                     "calendar" ->
@@ -48,11 +47,21 @@ fromJson =
             )
 
 
-view : DateDisplayMode -> Html Msg
-view displayMode =
-    case displayMode of
+view : DateComponent -> Html Msg
+view component =
+    case component of
         FixedRanges model ->
             Html.map FixedRangesMsg (FixedRanges.view model)
 
         Calendar model ->
             Html.map CalendarMsg (Calendar.view model)
+
+
+encodedValue : DateComponent -> Maybe Decode.Value
+encodedValue component =
+    case component of
+        FixedRanges model ->
+            FixedRanges.encodedValue model
+
+        Calendar model ->
+            Calendar.encodedValue model
