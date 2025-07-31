@@ -35,21 +35,26 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
                         []
                 end
         end,
-    Predicate = maps:get(<<"predicate">>, Filter, undefined),
+    Predicate = maps:get(<<"selected_predicate">>, Filter, undefined),
+    PredicateName = 
+        case Predicate of
+            undefined -> undefined;
+            Pred -> m_rsc:p(Pred, name, undefined, Context)
+        end,
+    
     % only add predicate if it is not undefined
-
     Props = maps:merge(BaseProps, #{
         <<"selected_category">> => SelectedCategory,
         <<"options">> => Options,
         <<"type">> => <<"object_filter">>
     }),
 
-    case Predicate of
+    case PredicateName of
         undefined -> 
             Props;
         _ -> 
             maps:merge(Props, #{
-                <<"predicate">> => Predicate
+                <<"selected_predicate">> => PredicateName
             })
     end;
   

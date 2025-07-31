@@ -30,14 +30,14 @@ update msg displayMode =
             displayMode
 
 
-fromJson : Decoder DateComponent
-fromJson =
+fromJson : String -> Decoder DateComponent
+fromJson dateProp =
     Decode.string
         |> Decode.andThen
             (\str ->
                 case str of
                     "fixed_ranges" ->
-                        Decode.succeed (FixedRanges (FixedRanges.init Nothing))
+                        Decode.succeed (FixedRanges (FixedRanges.init Nothing dateProp))
 
                     "calendar" ->
                         Decode.succeed (Calendar Calendar.init)
@@ -57,7 +57,7 @@ view component =
             Html.map CalendarMsg (Calendar.view model)
 
 
-encodedValue : DateComponent -> Maybe Decode.Value
+encodedValue : DateComponent -> List ( String, Decode.Value )
 encodedValue component =
     case component of
         FixedRanges model ->

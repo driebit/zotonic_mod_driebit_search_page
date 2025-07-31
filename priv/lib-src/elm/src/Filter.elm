@@ -26,7 +26,7 @@ type Component
 type FilterType
     = Category
     | Object (Maybe String)
-    | Date String
+    | Date
 
 
 type Msg
@@ -95,19 +95,33 @@ decodeSpecificFilterProps type_ title =
                 (Decode.field "options" (Decode.list Resource.fromJson))
 
         "object_filter" ->
-            Decode.map3 (\toComponent options predicate -> ( TextualComponent (toComponent title options), Object predicate ))
+            Decode.map3
+                (\toComponent options predicate ->
+                    ( TextualComponent (toComponent title options)
+                    , Object
+                        (if predicate == Just "" then
+                            Nothing
+
+                         else
+                            predicate
+                        )
+                    )
+                )
                 (Decode.field "component" TextualComponent.fromJson)
                 (Decode.field "options" (Decode.list Resource.fromJson))
                 (Decode.oneOf
-                    [ Decode.field "predicate" (Decode.maybe Decode.string)
+                    [ Decode.field "selected_predicate" (Decode.maybe Decode.string)
                     , Decode.succeed Nothing
                     ]
                 )
 
         "date_filter" ->
-            Decode.map2 (\component dateProp -> ( DateComponent component, Date dateProp ))
-                (Decode.field "component" DateComponent.fromJson)
-                (Decode.field "date_prop" Decode.string)
+            Decode.field "date_prop" Decode.string
+                |> Decode.andThen
+                    (\dateProp ->
+                        Decode.field "component" (DateComponent.fromJson dateProp)
+                            |> Decode.map (\component -> ( DateComponent component, Date ))
+                    )
 
         _ ->
             Decode.fail ("Unknown filter type: " ++ type_)
@@ -127,39 +141,29 @@ view filter =
                 (Html.map DateComponentMsg (DateComponent.view dateComponent))
 
 
-componentToValue : Maybe String -> Component -> Maybe Encode.Value
-componentToValue maybePredicate component =
-    case component of
-        TextualComponent textualComponent ->
-            TextualComponent.encodedValue maybePredicate textualComponent
-
-        DateComponent dateComponent ->
-            DateComponent.encodedValue dateComponent
-
-
 toSearchParams : Filter -> List ( String, Encode.Value )
 toSearchParams filter =
     case filter.filterType of
         Category ->
-            case componentToValue Nothing filter.component of
-                Just value ->
-                    [ ( "cat", value ) ]
+            case filter.component of
+                TextualComponent textualComponent ->
+                    TextualComponent.encodedValue "cat" Nothing textualComponent
 
-                Nothing ->
+                DateComponent _ ->
                     []
 
         Object maybePredicate ->
-            case componentToValue maybePredicate filter.component of
-                Just value ->
-                    [ ( "hasanyobject", value ) ]
+            case filter.component of
+                TextualComponent textualComponent ->
+                    TextualComponent.encodedValue "hasanyobject" maybePredicate textualComponent
 
-                Nothing ->
+                DateComponent _ ->
                     []
 
-        Date dateProp ->
-            case componentToValue Nothing filter.component of
-                Just value ->
-                    [ ( "date", Encode.string dateProp ), ( "value", value ) ]
-
-                Nothing ->
+        Date ->
+            case filter.component of
+                TextualComponent _ ->
                     []
+
+                DateComponent dateComponent ->
+                    DateComponent.encodedValue dateComponent

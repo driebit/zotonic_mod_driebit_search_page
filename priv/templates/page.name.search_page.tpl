@@ -19,6 +19,13 @@
 
         searchApp.ports.searchPageCall.subscribe(function(call) {
             console.log(call);
+            {# if (call.replyTopic === "SearchReply") {
+                const urlParams = new URLSearchParams(call.parameters).toString();
+                const url = new URL(location);
+                // combine the current URL with the new parameters
+                url.search = urlParams;
+                history.pushState({}, "", url);
+            } #}
             cotonic.broker.call(call.topic, call.parameters, {timeout: 5000})
                 .then(function(reply) {
                     console.log(reply);

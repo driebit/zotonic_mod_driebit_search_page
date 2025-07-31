@@ -20,6 +20,12 @@
                     {_ Event datum _}
                 </label>
             </div>
+            <div>
+                <label>
+                    <input type="radio" name="blocks[].date_prop~{{ name }}" {% if blk.date_prop == 'modification_date' %}checked{% endif %} value="modification_date" id="modification_date">
+                    {_ Aanpassingsdatum _}
+                </label>
+            </div>
         </div>
     </div>
 {% endblock %}

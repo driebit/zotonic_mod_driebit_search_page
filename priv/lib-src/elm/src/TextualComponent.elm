@@ -70,14 +70,14 @@ view displayMode =
             Html.map MultiselectMsg (Multiselect.view model)
 
 
-encodedValue : Maybe String -> TextualComponent -> Maybe Decode.Value
-encodedValue maybePredicate component =
+encodedValue : String -> Maybe String -> TextualComponent -> List ( String, Decode.Value )
+encodedValue filterProp maybePredicate component =
     case component of
         Dropdown model ->
-            Dropdown.encodedValue maybePredicate model
+            Dropdown.encodedValue filterProp maybePredicate model
 
         Checkboxes model ->
-            Checkboxes.encodedValue maybePredicate model
+            Checkboxes.encodedValue filterProp maybePredicate model
 
         MultiSelect model ->
-            Multiselect.encodedValue maybePredicate model
+            Multiselect.encodedValue filterProp maybePredicate model

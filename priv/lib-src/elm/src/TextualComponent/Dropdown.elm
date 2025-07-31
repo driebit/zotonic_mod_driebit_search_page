@@ -74,13 +74,17 @@ onChange toMsg =
     on "change" (Decode.at [ "target", "value" ] Decode.string |> Decode.map toMsg)
 
 
-encodedValue : Maybe String -> Model -> Maybe Decode.Value
-encodedValue maybePredicate model =
+encodedValue : String -> Maybe String -> Model -> List ( String, Encode.Value )
+encodedValue filterProp maybePredicate model =
     case maybePredicate of
         Just predicate ->
             model.selectedResource
-                |> Maybe.map (\resource -> Encode.list Encode.string [ predicate, String.fromInt resource.id ])
+                |> Maybe.map (\resource -> ( filterProp, Encode.list Encode.string [ predicate, String.fromInt resource.id ] ))
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []
 
         Nothing ->
             model.selectedResource
-                |> Maybe.map (\resource -> Encode.string (String.fromInt resource.id))
+                |> Maybe.map (\resource -> ( filterProp, Encode.string (String.fromInt resource.id) ))
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []

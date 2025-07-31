@@ -31,6 +31,6 @@ view _ =
         [ text "Calendar view is not yet implemented." ]
 
 
-encodedValue : Model -> Maybe Decode.Value
+encodedValue : Model -> List ( String, Decode.Value )
 encodedValue _ =
-    Nothing
+    []
