@@ -5,8 +5,8 @@
 {% endblock %}
 
 {% block custom_props %}
-    <h3> Categoriën zoekfilters </h3>
-    <p> Kies de categoriën die worden getoond in het zoekfilter.</p>
+    <h3> {_ Categories search filters _} </h3>
+    <p> {_ Choose the categories that are shown in the search filter. _} </p>
     <div class="checkbox">
         {% for c in m.category.tree_flat %}
             <div>

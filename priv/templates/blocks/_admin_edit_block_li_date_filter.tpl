@@ -5,25 +5,25 @@
 {% endblock %}
 
 {% block custom_props %}
-    <h3>Type datum</h3> 
-        <div class="controls">
+    <h3>{_ Date type _}</h3>
+    <div class="controls">
         <div class="radio">
             <div>
                 <label>
                     <input type="radio" name="blocks[].date_prop~{{ name }}" {% if blk.date_prop == 'publication_date' or not blk.date_prop %}checked{% endif %} value="publication_date" id="publication_date">
-                    {_ Publicatiedatum _}
+                    {_ Publication date _}
                 </label>
             </div>
             <div>
                 <label>
                     <input type="radio" name="blocks[].date_prop~{{ name }}" {% if blk.date_prop == 'date' %}checked{% endif %} value="date" id="date">
-                    {_ Event datum _}
+                    {_ Event date _}
                 </label>
             </div>
             <div>
                 <label>
                     <input type="radio" name="blocks[].date_prop~{{ name }}" {% if blk.date_prop == 'modification_date' %}checked{% endif %} value="modification_date" id="modification_date">
-                    {_ Aanpassingsdatum _}
+                    {_ Modification date _}
                 </label>
             </div>
         </div>
