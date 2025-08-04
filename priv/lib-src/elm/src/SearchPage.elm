@@ -1,9 +1,11 @@
 port module SearchPage exposing (..)
 
 import Browser
+import Collapse exposing (Collapse)
 import Cotonic exposing (CotonicCall, searchPageTopic, templateTopic)
 import Dict exposing (Dict)
 import Filter exposing (Filter)
+import Flags exposing (Flags)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -26,6 +28,9 @@ port searchPageReply : (Encode.Value -> msg) -> Sub msg
 port connected : (Bool -> msg) -> Sub msg
 
 
+port screenResized : (Int -> msg) -> Sub msg
+
+
 main : Program Decode.Value Model Msg
 main =
     Browser.element
@@ -44,6 +49,7 @@ type alias Model =
     , page : Int
     , sortBy : String
     , language : Translations.Language
+    , showFilters : Collapse
     }
 
 
@@ -58,14 +64,9 @@ type SearchResult
 init : Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        filters =
-            Decode.decodeValue (Decode.field "blocks" (Decode.list Filter.fromJson)) flags
-                |> Result.mapError (\err -> Debug.log "Error decoding filters" err)
-                |> Result.withDefault []
-
-        language =
-            Decode.decodeValue (Decode.field "language" Translations.languageFromJson) flags
-                |> Result.withDefault Translations.NL
+        { filters, language, screenWidth } =
+            Decode.decodeValue Flags.fromJson flags
+                |> Result.withDefault Flags.defaultFlags
 
         filterDict =
             List.map (\filter -> ( filter.id, filter )) filters
@@ -78,6 +79,7 @@ init flags =
       , page = 1
       , sortBy = "pivot.title"
       , language = language
+      , showFilters = Collapse.fromPageWidth screenWidth
       }
     , Cmd.none
     )
@@ -92,6 +94,7 @@ type Msg
     | ChangeSort String
     | NextPage
     | PreviousPage
+    | ScreenResized Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -213,6 +216,16 @@ update msg model =
             , searchPageCall (encodedSearchParams updatedModel)
             )
 
+        ScreenResized width ->
+            let
+                newCollapseState =
+                    Collapse.fromPageWidth width
+
+                updatedModel =
+                    { model | showFilters = newCollapseState }
+            in
+            ( updatedModel, Cmd.none )
+
 
 encodedSearchParams : Model -> Decode.Value
 encodedSearchParams model =
@@ -256,9 +269,19 @@ view model =
                 []
             ]
         , div [ class "c-search-filters" ]
-            (Dict.toList model.filters
-                |> List.map (\( id, filter ) -> Html.map (FilterMsg id) (Filter.view model.language filter))
-            )
+            [ Collapse.view
+                model.showFilters
+                (translate model.language translations.searchFilters)
+                (div
+                    [ class "c-search-filters__content" ]
+                    (List.map
+                        (\( id, filter ) ->
+                            Html.map (FilterMsg id) (Filter.view model.language filter)
+                        )
+                        (Dict.toList model.filters)
+                    )
+                )
+            ]
         , div [ class "c-search-results" ]
             [ viewResults model.language model.results model.templateCache model.sortBy
             , div [ class "c-pagination" ]
@@ -362,6 +385,7 @@ subscriptions _ =
     Sub.batch
         [ searchPageReply SearchPageReply
         , connected CotonicReady
+        , screenResized ScreenResized
         ]
 
 

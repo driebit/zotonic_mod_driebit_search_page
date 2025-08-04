@@ -11,6 +11,15 @@ type Collapse
     | NotCollapsable
 
 
+fromPageWidth : Int -> Collapse
+fromPageWidth width =
+    if width < 800 then
+        Collapsabable Closed
+
+    else
+        NotCollapsable
+
+
 type CollapseState
     = Open
     | Closed
@@ -40,13 +49,14 @@ view collapse title content =
     case collapse of
         Collapsabable state ->
             details
-                [ if state == Open then
-                    Html.Attributes.attribute "open" "true"
+                (class "c-collapse"
+                    :: (if state == Open then
+                            [ Html.Attributes.attribute "open" "true" ]
 
-                  else
-                    Html.Attributes.attribute "open" "false"
-                , class "c-collapse"
-                ]
+                        else
+                            []
+                       )
+                )
                 [ summary [ class "c-collapse__summary" ] [ h3 [ class "c-collapse__title" ] [ text title ] ]
                 , div [ class "c-collapse__content" ] [ content ]
                 ]

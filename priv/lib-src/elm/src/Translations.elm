@@ -78,4 +78,5 @@ translations =
     , dropdownAll = { en = "All", nl = "Alle", de = "Alle" }
     , multiselectSearchPlaceholder = { en = "Search options...", nl = "Opties zoeken...", de = "Optionen suchen..." }
     , multiselectShowMore = { en = "+ Show More", nl = "+ Meer tonen", de = "+ Mehr anzeigen" }
+    , searchFilters = { en = "Search Filters", nl = "Zoekfilters", de = "Suchfilter" }
     }

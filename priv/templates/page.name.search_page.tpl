@@ -15,7 +15,8 @@
 
         const flags = 
             { blocks: blocks,
-              language: language
+              language: language,
+              screenWidth: window.innerWidth
             };
 
 
@@ -39,5 +40,9 @@
                     searchApp.ports.connected.send(true);
                 }, 100);
             });
+
+        window.addEventListener('resize', function() {
+            searchApp.ports.screenResized.send(window.innerWidth);
+        });
     </script>
 {% endblock %}
