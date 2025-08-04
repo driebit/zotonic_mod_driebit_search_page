@@ -7,6 +7,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Resource exposing (Resource)
 import Time exposing (Month(..))
+import Translations exposing (Language, translate, translations)
 
 
 type alias Model =
@@ -14,7 +15,6 @@ type alias Model =
     , options : List Resource
     , filteredOptions : List Resource
     , searchQuery : String
-    , isOpen : Bool
     , numberOfResultsVisible : Int
     }
 
@@ -26,9 +26,8 @@ init options =
             { selected = []
             , options = options
             , searchQuery = ""
-            , isOpen = False
             , filteredOptions = options
-            , numberOfResultsVisible = 5
+            , numberOfResultsVisible = 10
             }
     in
     initialModel
@@ -37,7 +36,6 @@ init options =
 type Msg
     = NoOp
     | Select Int
-    | ToggleDropdown
     | SearchInput String
     | ShowMoreResults
 
@@ -54,9 +52,6 @@ update msg model =
 
             else
                 { model | selected = option :: model.selected }
-
-        ToggleDropdown ->
-            { model | isOpen = not model.isOpen }
 
         SearchInput query ->
             let
@@ -77,26 +72,29 @@ update msg model =
 -- VIEW
 
 
-view : Model -> Html Msg
-view model =
-    div []
-        [ input [ type_ "text", placeholder "Search...", onInput SearchInput ] []
-        , button [ onClick ToggleDropdown ] [ text "open" ]
-        , if model.isOpen then
-            div []
-                [ ul []
-                    (List.take model.numberOfResultsVisible model.filteredOptions
-                        |> List.map (viewOption model.selected)
-                    )
-                , if List.length model.filteredOptions > model.numberOfResultsVisible then
-                    button [ onClick ShowMoreResults ] [ text "Show More" ]
+view : Language -> Model -> Html Msg
+view language model =
+    div [ class "c-multiselect" ]
+        [ input
+            [ name "multiselect"
+            , class "c-multiselect__input"
+            , type_ "text"
+            , placeholder (translate language translations.multiselectSearchPlaceholder)
+            , onInput SearchInput
+            ]
+            []
+        , div [ class "c-multiselect__options" ]
+            [ ul [ class "c-multiselect__list" ]
+                (List.take model.numberOfResultsVisible model.filteredOptions
+                    |> List.map (viewOption model.selected)
+                )
+            , if List.length model.filteredOptions > model.numberOfResultsVisible then
+                button [ class "c-multiselect__show-more", onClick ShowMoreResults ]
+                    [ text (translate language translations.multiselectShowMore) ]
 
-                  else
-                    text ""
-                ]
-
-          else
-            text ""
+              else
+                text ""
+            ]
         ]
 
 
@@ -108,16 +106,10 @@ viewOption selectedOptions option =
     in
     li
         [ onClick (Select option.id)
-        , style "background-color"
-            (if isSelected then
-                "lightblue"
-
-             else
-                "white"
-            )
+        , class "c-multiselect__option"
         ]
-        [ input [ type_ "checkbox", checked isSelected, id (String.fromInt option.id) ] []
-        , label [ for (String.fromInt option.id) ] [ text option.title ]
+        [ input [ class "c-multiselect__checkbox", type_ "checkbox", checked isSelected, id (String.fromInt option.id) ] []
+        , label [ class "c-multiselect__label", for (String.fromInt option.id) ] [ text option.title ]
         ]
 
 

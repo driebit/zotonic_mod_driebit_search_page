@@ -5,6 +5,7 @@ import DateComponent.FixedRanges as FixedRanges
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode as Decode exposing (Decoder)
+import Translations exposing (Language)
 
 
 type DateComponent
@@ -47,14 +48,14 @@ fromJson dateProp =
             )
 
 
-view : DateComponent -> Html Msg
-view component =
+view : Language -> DateComponent -> Html Msg
+view language component =
     case component of
         FixedRanges model ->
-            Html.map FixedRangesMsg (FixedRanges.view model)
+            Html.map FixedRangesMsg (FixedRanges.view language model)
 
         Calendar model ->
-            Html.map CalendarMsg (Calendar.view model)
+            Html.map CalendarMsg (Calendar.view language model)
 
 
 encodedValue : DateComponent -> List ( String, Decode.Value )

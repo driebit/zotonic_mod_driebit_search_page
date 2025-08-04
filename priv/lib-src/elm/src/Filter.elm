@@ -7,6 +7,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Resource
 import TextualComponent exposing (TextualComponent)
+import Translations exposing (Language)
 
 
 type alias Filter =
@@ -127,18 +128,18 @@ decodeSpecificFilterProps type_ title =
             Decode.fail ("Unknown filter type: " ++ type_)
 
 
-view : Filter -> Html Msg
-view filter =
+view : Language -> Filter -> Html Msg
+view language filter =
     case filter.component of
         TextualComponent textualComponent ->
             Collapse.view filter.collapse
                 filter.title
-                (Html.map TextualComponentMsg (TextualComponent.view textualComponent))
+                (Html.map TextualComponentMsg (TextualComponent.view language textualComponent))
 
         DateComponent dateComponent ->
             Collapse.view filter.collapse
                 filter.title
-                (Html.map DateComponentMsg (DateComponent.view dateComponent))
+                (Html.map DateComponentMsg (DateComponent.view language dateComponent))
 
 
 toSearchParams : Filter -> List ( String, Encode.Value )

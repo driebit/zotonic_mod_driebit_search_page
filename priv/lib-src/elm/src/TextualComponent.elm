@@ -7,6 +7,7 @@ import Resource exposing (Resource)
 import TextualComponent.Checkboxes as Checkboxes
 import TextualComponent.Dropdown as Dropdown
 import TextualComponent.Multiselect as Multiselect
+import Translations exposing (Language)
 
 
 type TextualComponent
@@ -57,17 +58,17 @@ fromJson =
             )
 
 
-view : TextualComponent -> Html Msg
-view displayMode =
+view : Language -> TextualComponent -> Html Msg
+view language displayMode =
     case displayMode of
         Dropdown dropdownModel ->
-            Html.map DropdownMsg (Dropdown.view dropdownModel)
+            Html.map DropdownMsg (Dropdown.view language dropdownModel)
 
         Checkboxes model ->
-            Html.map CheckboxesMsg (Checkboxes.view model)
+            Html.map CheckboxesMsg (Checkboxes.view language model)
 
         MultiSelect model ->
-            Html.map MultiselectMsg (Multiselect.view model)
+            Html.map MultiselectMsg (Multiselect.view language model)
 
 
 encodedValue : String -> Maybe String -> TextualComponent -> List ( String, Decode.Value )

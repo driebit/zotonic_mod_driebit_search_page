@@ -5,22 +5,27 @@
            "js/driebit_search_page.js"
      %}
     
-    <div id="multiselect"></div>
+    <div id="searchPage"></div>
 
     <script type="text/javascript" nonce="{{ m.req.csp_nonce }}">
 
         const blocks = {{ m.search_filters.json[id] }};
 
+        const language = "{{ z_language|default:'nl' }}";
 
-        console.log(blocks);
+        const flags = 
+            { blocks: blocks,
+              language: language
+            };
 
 
-        const searchApp = Elm.SearchPage.init({flags: blocks, node: document.getElementById('multiselect')});
+        const searchApp = Elm.SearchPage.init({flags: flags, node: document.getElementById('searchPage')});
 
         searchApp.ports.searchPageCall.subscribe(function(call) {
             cotonic.broker.call(call.topic, call.parameters, {timeout: 5000})
                 .then(function(reply) {
                     searchApp.ports.searchPageReply.send({topic: call.replyTopic, reply: reply, });
+                    console.log("Reply from " + call.topic, reply);
                 })
                 .catch(function(e) {
                     console.log("Error on call to " + call.topic, e);

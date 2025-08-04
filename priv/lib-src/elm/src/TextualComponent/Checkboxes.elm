@@ -7,6 +7,7 @@ import Json.Decode as Decode exposing (maybe)
 import Json.Encode as Encode exposing (Value)
 import Resource exposing (Resource)
 import Set exposing (Set)
+import Translations exposing (Language, translate, translations)
 
 
 type alias Model =
@@ -41,26 +42,22 @@ update msg model =
             { model | selectedResources = newSelectedResources }
 
 
-view : Model -> Html Msg
-view { selectedResources, options } =
-    fieldset []
-        [ div [ class "" ]
-            (List.map
-                (\resource ->
-                    let
-                        isSelected =
-                            Set.member resource.id selectedResources
-                    in
-                    div []
-                        [ label [ class "keyword-label" ]
-                            [ input [ type_ "checkbox", checked isSelected, onCheck (\_ -> ResourceSelected resource.id), id (String.fromInt resource.id) ] []
-                            , span [] [ text resource.title ]
-                            ]
-                        ]
-                )
-                options
+view : Language -> Model -> Html Msg
+view language { selectedResources, options } =
+    fieldset [ class "c-checkboxes" ]
+        (List.map
+            (\resource ->
+                let
+                    isSelected =
+                        Set.member resource.id selectedResources
+                in
+                div [ class "c-checkboxes__item" ]
+                    [ input [ class "c-checkboxes__checkbox", type_ "checkbox", checked isSelected, onCheck (\_ -> ResourceSelected resource.id), id (String.fromInt resource.id) ] []
+                    , label [ class "c-checkboxes__label" ] [ span [] [ text resource.title ] ]
+                    ]
             )
-        ]
+            options
+        )
 
 
 encodedValue : String -> Maybe String -> Model -> List ( String, Value )

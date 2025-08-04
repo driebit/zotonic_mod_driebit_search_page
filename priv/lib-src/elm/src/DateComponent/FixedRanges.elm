@@ -7,6 +7,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import List exposing (range)
 import Resource exposing (Resource)
+import Translations exposing (Language, translate, translations)
 
 
 type Range
@@ -25,6 +26,7 @@ type DateProp
     = PublicationDate
     | ModificationDate
     | EventDate
+    | CustomDateProp String
 
 
 datePropFromString : String -> DateProp
@@ -40,7 +42,7 @@ datePropFromString prop =
             EventDate
 
         _ ->
-            PublicationDate
+            CustomDateProp prop
 
 
 allRanges : DateProp -> List Range
@@ -54,6 +56,18 @@ allRanges dateProp =
 
         EventDate ->
             [ Upcoming, Today, NextWeek, NextMonth, LastYear, Custom ]
+
+        CustomDateProp _ ->
+            [ Today
+            , Last7Days
+            , LastMonth
+            , LastYear
+            , PreviousYear
+            , Upcoming
+            , NextWeek
+            , NextMonth
+            , Custom
+            ]
 
 
 type alias Model =
@@ -147,11 +161,12 @@ isValidDate date =
             False
 
 
-view : Model -> Html Msg
-view model =
-    div [ class "fixed-ranges" ]
+view : Language -> Model -> Html Msg
+view language model =
+    ul [ class "c-fixed-ranges" ]
         (List.map
             (viewOption
+                language
                 model.selectedRange
                 model.customStart
                 model.customEnd
@@ -160,8 +175,8 @@ view model =
         )
 
 
-viewOption : Maybe Range -> String -> String -> Range -> Html Msg
-viewOption selectedRange start end currentRange =
+viewOption : Language -> Maybe Range -> String -> String -> Range -> Html Msg
+viewOption language selectedRange start end currentRange =
     let
         isSelected =
             Just currentRange == selectedRange
@@ -169,59 +184,81 @@ viewOption selectedRange start end currentRange =
     li
         [ class
             (if isSelected then
-                "selected"
+                "c-fixed-ranges__option c-fixed-ranges__option--selected"
 
              else
-                ""
+                "c-fixed-ranges__option"
             )
-        , if isSelected then
-            style "background-color" "lightblue"
-
-          else
-            style "background-color" "transparent"
         ]
         [ case currentRange of
             Custom ->
-                div []
-                    [ input [ type_ "text", placeholder "Start date", value start, onInput EnterStartDate, value start ] []
-                    , input [ type_ "text", placeholder "End date", value end, onInput EnterEndDate, value end ] []
-                    , text "Custom Range"
+                div [ class "c-fixed-ranges__custom-inputs" ]
+                    [ h3 [ class "c-fixed-ranges__custom-title" ] [ text (translate language translations.fixedRangesCustom) ]
+                    , div [ class "c-fixed-ranges__custom" ]
+                        [ label [ class "c-fixed-ranges__label" ] [ text (translate language translations.fixedRangesFrom) ]
+                        , input
+                            [ classList [ ( "c-fixed-ranges__input", True ), ( "c-fixed-ranges__input--selected", isSelected ) ]
+                            , type_ "text"
+                            , placeholder (translate language translations.fixedRangesPlaceholder)
+                            , value start
+                            , onInput EnterStartDate
+                            ]
+                            []
+                        ]
+                    , div [ class "c-fixed-ranges__custom" ]
+                        [ label [ class "c-fixed-ranges__label" ] [ text (translate language translations.fixedRangesTo) ]
+                        , input
+                            [ classList [ ( "c-fixed-ranges__input", True ), ( "c-fixed-ranges__input--selected", isSelected ) ]
+                            , type_ "text"
+                            , placeholder (translate language translations.fixedRangesPlaceholder)
+                            , value end
+                            , onInput EnterEndDate
+                            ]
+                            []
+                        ]
                     ]
 
             _ ->
-                button [ onClick (SelectRange currentRange) ] [ text (toString currentRange) ]
+                button
+                    [ classList
+                        [ ( "c-fixed-ranges__button", True )
+                        , ( "c-fixed-ranges__button--selected", isSelected )
+                        ]
+                    , onClick (SelectRange currentRange)
+                    ]
+                    [ text (toStringTranslated language currentRange) ]
         ]
 
 
-toString : Range -> String
-toString range =
+toStringTranslated : Language -> Range -> String
+toStringTranslated language range =
     case range of
         Last7Days ->
-            "Last 7 Days"
+            translate language translations.fixedRangesLast7Days
 
         LastMonth ->
-            "Last Month"
+            translate language translations.fixedRangesLastMonth
 
         LastYear ->
-            "Last Year"
+            translate language translations.fixedRangesLastYear
 
         PreviousYear ->
-            "Previous Year"
+            translate language translations.fixedRangesPreviousYear
 
         NextWeek ->
-            "Next Week"
+            translate language translations.fixedRangesNextWeek
 
         NextMonth ->
-            "Next Month"
+            translate language translations.fixedRangesNextMonth
 
         Upcoming ->
-            "Upcoming"
+            translate language translations.fixedRangesUpcoming
 
         Today ->
-            "Today"
+            translate language translations.fixedRangesToday
 
         Custom ->
-            "Custom Range"
+            translate language translations.fixedRangesCustomRange
 
 
 encodedValue : Model -> List ( String, Encode.Value )
@@ -235,6 +272,9 @@ encodedValue model =
 
         EventDate ->
             rangeToEncodedValue "date_start_before" "date_end_after" model.customStart model.customEnd model.selectedRange
+
+        CustomDateProp prop ->
+            rangeToEncodedValue (prop ++ "_before") (prop ++ "_after") model.customStart model.customEnd model.selectedRange
 
 
 rangeToEncodedValue : String -> String -> String -> String -> Maybe Range -> List ( String, Encode.Value )

@@ -45,15 +45,16 @@ view collapse title content =
 
                   else
                     Html.Attributes.attribute "open" "false"
+                , class "c-collapse"
                 ]
-                [ summary [] [ text title ]
-                , content
+                [ summary [ class "c-collapse__summary" ] [ h3 [ class "c-collapse__title" ] [ text title ] ]
+                , div [ class "c-collapse__content" ] [ content ]
                 ]
 
         NotCollapsable ->
-            div []
-                [ h3 [] [ text title ]
-                , content
+            div [ class "c-collapse--uncollapsable" ]
+                [ h3 [ class "c-collapse__title" ] [ text title ]
+                , div [ class "c-collapse__content" ] [ content ]
                 ]
 
 

@@ -6,6 +6,7 @@ import Html.Events exposing (on, onClick)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Resource exposing (Resource)
+import Translations exposing (Language, translate, translations)
 
 
 type alias Model =
@@ -48,23 +49,31 @@ update msg model =
 
                         Nothing ->
                             selectedResource
+
+                newSelectedResource_ =
+                    if selectedResourceId == "all" then
+                        Nothing
+
+                    else
+                        newSelectedResource
             in
-            { model | selectedResource = newSelectedResource }
+            { model | selectedResource = newSelectedResource_ }
 
 
-view : Model -> Html Msg
-view { selectedResource, options } =
-    div []
-        [ select [ class "dropdown", onChange ResourceSelected ]
-            (List.map
-                (\resource ->
-                    option
-                        [ value (String.fromInt resource.id)
-                        , selected (Maybe.map (\r -> r.id == resource.id) selectedResource |> Maybe.withDefault False)
-                        ]
-                        [ text resource.title ]
-                )
-                options
+view : Language -> Model -> Html Msg
+view language { selectedResource, options } =
+    div [ class "c-dropdown" ]
+        [ select [ class "c-dropdown__select", onChange ResourceSelected ]
+            (option [ value "all" ] [ text (translate language translations.dropdownAll) ]
+                :: List.map
+                    (\resource ->
+                        option
+                            [ value (String.fromInt resource.id)
+                            , selected (Maybe.map (\r -> r.id == resource.id) selectedResource |> Maybe.withDefault False)
+                            ]
+                            [ text resource.title ]
+                    )
+                    options
             )
         ]
 
