@@ -1,0 +1,136 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+# NB: Consider using poEdit <http://poedit.sourceforge.net>
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2025-08-04 16:08+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.4.1\n"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_object_filter.tpl:22
+msgid "All predicates"
+msgstr "Alle predicaten"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_date_component.tpl:7
+msgid "Buttons with time periods"
+msgstr "Knoppen met tijdsperiodes"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_date_component.tpl:13
+msgid "Calendar (single date selectable)"
+msgstr "Kalender (één datum selecteerbaar)"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_category_filter.tpl:8
+msgid "Categories search filters"
+msgstr "Categorieën zoekfilters"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_object_filter.tpl:8
+msgid "Category"
+msgstr "Categorie"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_textual_component.tpl:7
+msgid "Checkboxes (multiple options selectable)"
+msgstr "Checkboxes"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_category_filter.tpl:9
+msgid "Choose the categories that are shown in the search filter."
+msgstr "Kies de categorieën die worden getoond in het zoekfilter."
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_date_component.tpl:1./apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_textual_component.tpl:1
+msgid "Component"
+msgstr "Component"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_date_filter.tpl:8
+msgid "Date type"
+msgstr "Datum type"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_textual_component.tpl:13
+msgid "Dropdown (single option selectable)"
+msgstr "Dropdown (één optie selecteerbaar)"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_date_filter.tpl:20
+msgid "Event date"
+msgstr "Event datum"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:4
+msgid "Filter Category"
+msgstr "Filter op categorie"
+
+#: apps/zotonic_mod_driebit_search_page/src/mod_driebit_search_page.erl:42
+msgid "Filter op categorie"
+msgstr ""
+
+#: apps/zotonic_mod_driebit_search_page/src/mod_driebit_search_page.erl:44
+msgid "Filter op datum"
+msgstr ""
+
+#: apps/zotonic_mod_driebit_search_page/src/mod_driebit_search_page.erl:43
+msgid "Filter op relatie"
+msgstr ""
+
+#: apps/zotonic_mod_driebit_search_page/src/mod_driebit_search_page.erl:41
+msgid "Filters"
+msgstr "Filters"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_date_filter.tpl:26
+msgid "Modification date"
+msgstr "Modificatie datums"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_select_textual_component.tpl:19
+msgid "Multiselect with search"
+msgstr "Multiselect met zoek"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_object_filter.tpl:19
+msgid "Optional: predicate"
+msgstr "Optioneel: predicaat"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_date_filter.tpl:14
+msgid "Publication date"
+msgstr "Publicatiedatum"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_object_filter.tpl:9
+msgid ""
+"Select a category. All resources with this category become search filters."
+msgstr ""
+"Select een categorie. Alle resources met deze categorie worden zoekfilters."
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_edit_block_li_object_filter.tpl:20
+msgid ""
+"Select a predicate that links the search results to resources with the above "
+"category.\n"
+"    If no predicate is selected, resources can be linked with any predicate."
+msgstr ""
+"Selecteer een predicaat dat de zoekresultaten aan de resources met "
+"bovenstaande categorie linkt. Als er geen predicaat is gekozen kunnen de "
+"resources op elke manier gelinkt zijn. "
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:16
+msgid "Settings"
+msgstr "Instellingen"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:28
+msgid "Show collapsed"
+msgstr "Toon ingeklapt"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:34
+msgid "Show expanded"
+msgstr "Toon uitgeklapt"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:40
+msgid "Show without collapse"
+msgstr "Toon zonder uitklapper"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:18
+msgid "Title"
+msgstr "Titel"

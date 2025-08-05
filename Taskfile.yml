@@ -22,6 +22,11 @@ tasks:
     deps:
       - build
 
+  build-dev:
+    cmds:
+      - task: elm:elm-debug
+      - task: sass:build
+
   build:
     deps:
       - elm:build
