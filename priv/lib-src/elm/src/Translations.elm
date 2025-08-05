@@ -50,7 +50,7 @@ translate lang translation =
 
 
 translations =
-    { searchPlaceholder = { en = "Search", nl = "Zoeken", de = "Suchen" }
+    { searchPlaceholder = { en = "Search", nl = "Typ hier je zoekopdracht", de = "Suchen" }
     , noSearchYet = { en = "No search has been performed yet.", nl = "Er is nog geen zoekopdracht uitgevoerd.", de = "Es wurde noch keine Suche durchgeführt." }
     , loading = { en = "Loading...", nl = "Laden...", de = "Wird geladen..." }
     , waitingForConnection = { en = "Waiting for connection...", nl = "Wachten op verbinding...", de = "Warten auf Verbindung..." }
@@ -60,8 +60,8 @@ translations =
     , previous = { en = "Previous", nl = "Vorige", de = "Vorherige" }
     , next = { en = "Next", nl = "Volgende", de = "Nächste" }
     , sortTitle = { en = "Title", nl = "Titel", de = "Titel" }
-    , sortModified = { en = "Modified", nl = "Gewijzigd", de = "Geändert" }
-    , sortCreated = { en = "Created", nl = "Aangemaakt", de = "Erstellt" }
+    , sortModified = { en = "Latest modified", nl = "laatst gewijzigd", de = "Geändert" }
+    , sortCreated = { en = "Latest created", nl = "Laatst aangemaakt", de = "Erstellt" }
     , fixedRangesCustom = { en = "Custom", nl = "Aangepast", de = "Benutzerdefiniert" }
     , fixedRangesFrom = { en = "From", nl = "Van", de = "Von" }
     , fixedRangesTo = { en = "To", nl = "Tot", de = "Bis" }
@@ -78,5 +78,5 @@ translations =
     , dropdownAll = { en = "All", nl = "Alle", de = "Alle" }
     , multiselectSearchPlaceholder = { en = "Search options...", nl = "Opties zoeken...", de = "Optionen suchen..." }
     , multiselectShowMore = { en = "+ Show More", nl = "+ Meer tonen", de = "+ Mehr anzeigen" }
-    , searchFilters = { en = "Search Filters", nl = "Zoekfilters", de = "Suchfilter" }
+    , searchFilters = { en = "Refine Results", nl = "Verfijn resultaten", de = "Suchfilter" }
     }
