@@ -14,7 +14,18 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     Filters = lists:map(fun(Block) ->
         search_filter(Block, Context)
     end, Blocks),
-    {ok, {jsx:encode(Filters), Rest}};
+    % why does it break adding a default here?
+    ExcludedCategories = m_rsc:p(Id, <<"exclude_categories">>, Context),
+    FilteredExludedCategories = 
+        lists:filter(fun(Cat) -> not z_utils:is_empty(Cat) end, ExcludedCategories),
+
+    FiltersAndExcludedCategories = 
+        maps:merge(
+            #{<<"filters">> => Filters},
+            #{<<"exclude_categories">> => FilteredExludedCategories}
+        ),
+
+    {ok, {jsx:encode(FiltersAndExcludedCategories), Rest}};
 
     
 m_get(_Path, _Msg, _Context) ->

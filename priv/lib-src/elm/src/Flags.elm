@@ -7,6 +7,7 @@ import Translations exposing (Language)
 
 type alias Flags =
     { filters : List Filter
+    , excludeCategories : List String
     , language : Language
     , screenWidth : Int
     }
@@ -14,8 +15,9 @@ type alias Flags =
 
 fromJson : Decoder Flags
 fromJson =
-    Decode.map3 Flags
-        (Decode.field "blocks" (Decode.list Filter.fromJson))
+    Decode.map4 Flags
+        (Decode.at [ "blocks", "filters" ] (Decode.list Filter.fromJson))
+        (Decode.at [ "blocks", "exclude_categories" ] (Decode.list Decode.string))
         (Decode.field "language" Translations.languageFromJson)
         (Decode.field "screenWidth" Decode.int)
 
@@ -23,6 +25,7 @@ fromJson =
 defaultFlags : Flags
 defaultFlags =
     { filters = []
+    , excludeCategories = []
     , language = Translations.NL
     , screenWidth = 800
     }

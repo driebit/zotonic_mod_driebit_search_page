@@ -50,6 +50,7 @@ type alias Model =
     , sortBy : String
     , language : Translations.Language
     , showFilters : Collapse
+    , excludedCategories : List String
     }
 
 
@@ -64,7 +65,7 @@ type SearchResult
 init : Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        { filters, language, screenWidth } =
+        { filters, language, screenWidth, excludeCategories } =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
@@ -80,6 +81,7 @@ init flags =
       , sortBy = "pivot.title"
       , language = language
       , showFilters = Collapse.fromPageWidth screenWidth
+      , excludedCategories = excludeCategories
       }
     , Cmd.none
     )
@@ -234,6 +236,7 @@ encodedSearchParams model =
         |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
         |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
         |> List.append [ ( "sort", Encode.string model.sortBy ) ]
+        |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
 
@@ -245,6 +248,7 @@ encodedSearchParamsWithPage model =
         |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
         |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
         |> List.append [ ( "sort", Encode.string model.sortBy ) ]
+        |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
         |> List.append [ ( "page", Encode.int model.page ) ]
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
