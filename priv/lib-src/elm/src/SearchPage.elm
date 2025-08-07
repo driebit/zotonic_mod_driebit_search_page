@@ -14,6 +14,7 @@ import Html.Parser.Util
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (sort)
+import Pagination
 import Task exposing (Task)
 import Time exposing (Month(..))
 import Translations exposing (Language, translate, translations)
@@ -51,6 +52,7 @@ type alias Model =
     , language : Translations.Language
     , showFilters : Collapse
     , excludedCategories : List String
+    , pagination : Pagination.Model
     }
 
 
@@ -58,7 +60,7 @@ type SearchResult
     = NotAsked
     | WaitingForConnection
     | Loading
-    | Loaded (List Int) Int
+    | Loaded (List Int) Pagination.Model
     | Error String
 
 
@@ -82,6 +84,7 @@ init flags =
       , language = language
       , showFilters = Collapse.fromPageWidth screenWidth
       , excludedCategories = excludeCategories
+      , pagination = Pagination.init
       }
     , Cmd.none
     )
@@ -94,8 +97,7 @@ type Msg
     | FullTextSearchInput String
     | CotonicReady Bool
     | ChangeSort String
-    | NextPage
-    | PreviousPage
+    | ChangePage Int
     | ScreenResized Int
 
 
@@ -124,10 +126,10 @@ update msg model =
                         decoder =
                             Decode.map2 Loaded
                                 (Decode.at [ "reply", "payload", "result", "result" ] (Decode.list Decode.int))
-                                (Decode.at [ "reply", "payload", "result", "total" ] Decode.int)
+                                (Decode.at [ "reply", "payload", "result" ] Pagination.fromJson)
                     in
                     case Decode.decodeValue decoder reply of
-                        Ok (Loaded results total) ->
+                        Ok (Loaded results paginationInfo) ->
                             let
                                 templateCalls =
                                     results
@@ -135,7 +137,7 @@ update msg model =
                                         |> List.map Cotonic.toJson
                                         |> List.map searchPageCall
                             in
-                            ( { model | results = Loaded results total }, Cmd.batch templateCalls )
+                            ( { model | results = Loaded results paginationInfo, pagination = paginationInfo }, Cmd.batch templateCalls )
 
                         Ok _ ->
                             ( { model | results = Error "Search results returned an unexpected format" }, Cmd.none )
@@ -181,29 +183,10 @@ update msg model =
         CotonicReady _ ->
             ( { model | results = Loading }, searchPageCall (encodedSearchParams model) )
 
-        NextPage ->
+        ChangePage pageNumber ->
             let
-                nextPage =
-                    model.page + 1
-
                 updatedModel =
-                    { model | page = nextPage }
-            in
-            ( updatedModel
-            , searchPageCall (encodedSearchParamsWithPage updatedModel)
-            )
-
-        PreviousPage ->
-            let
-                previousPage =
-                    if model.page > 1 then
-                        model.page - 1
-
-                    else
-                        1
-
-                updatedModel =
-                    { model | page = previousPage }
+                    { model | page = pageNumber }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParamsWithPage updatedModel)
@@ -291,7 +274,7 @@ view model =
         , div [ class "c-search-results" ]
             [ viewResults model.language model.results model.templateCache model.sortBy
             , div [ class "c-pagination" ]
-                [ viewPagination model.language model.page ]
+                [ Pagination.view model.language model.pagination ChangePage ]
             ]
         ]
 
@@ -311,7 +294,7 @@ viewResults language results templateCache activeSort =
             div [ class "c-search-results__notice" ]
                 [ text (translate language translations.waitingForConnection) ]
 
-        Loaded resultIds totalResults ->
+        Loaded resultIds paginationInfo ->
             let
                 resultTemplates =
                     resultIds
@@ -323,7 +306,7 @@ viewResults language results templateCache activeSort =
             else
                 div [ class "c-search-results__wrapper" ]
                     [ div [ class "c-search-results__header" ]
-                        [ h3 [ class "c-search-results__title" ] [ text (String.fromInt totalResults ++ " " ++ translate language translations.results) ]
+                        [ h3 [ class "c-search-results__title" ] [ text (String.fromInt paginationInfo.totalResults ++ " " ++ translate language translations.results) ]
                         , viewSort language activeSort
                         ]
                     , ul [ class "c-search-results__list" ] (List.map (div [ class "c-search-results__item" ]) resultTemplates)
@@ -331,24 +314,6 @@ viewResults language results templateCache activeSort =
 
         Error errorMsg ->
             div [ class "c-search-results__error" ] [ text (translate language translations.errorPrefix ++ errorMsg) ]
-
-
-viewPagination : Language -> Int -> Html Msg
-viewPagination language currentPage =
-    div [ class "c-pagination" ]
-        [ button
-            [ class "c-pagination__button c-pagination__button--previous"
-            , onClick PreviousPage
-            , disabled (currentPage <= 1)
-            ]
-            [ span [ class "u-visually-hidden" ] [ text (translate language translations.previous) ] ]
-        , span [ class "c-pagination__current-page" ] [ text (String.fromInt currentPage) ]
-        , button
-            [ class "c-pagination__button c-pagination__button--next"
-            , onClick NextPage
-            ]
-            [ span [ class "u-visually-hidden" ] [ text (translate language translations.next) ] ]
-        ]
 
 
 viewSort : Language -> String -> Html Msg
