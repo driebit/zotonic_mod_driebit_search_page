@@ -10,7 +10,7 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: auto;
-  gap: 1rem;
+  gap: 10px;
 }
 
 .c-full-text-search {
@@ -18,18 +18,18 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 6rem 0rem;
+  padding: 60px 0px;
   background-color: var(--color-search-bg);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
+  gap: 10px;
 }
 
 .c-full-text-search__wrapper {
   position: relative;
-  width: 50rem;
-  height: 4rem;
-  width: calc(100% - 8rem);
+  width: 500px;
+  height: 40px;
+  width: calc(100% - 80px);
   margin: 0 auto;
   grid-column: 1/-1;
 }
@@ -46,28 +46,28 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 22px;
+  height: 22px;
   top: 50%;
-  right: 2.5rem;
-  transform: translateY(calc(-50% + 0.8rem));
+  right: 25px;
+  transform: translateY(calc(-50% + 8px));
 }
 
 .c-full-text-search__searchbar {
   width: 100%;
-  padding: 1rem;
+  padding: 10px;
   background-color: #f0f0f0;
   border: 1px solid var(--color-black);
-  border-radius: 0.25rem;
+  border-radius: 2.5px;
 }
 
 .c-search-filters {
   grid-column: 1/-1;
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 30px;
   background-color: var(--color-search-filter-bg);
-  padding: 3rem;
+  padding: 30px;
 }
 @media (min-width: 800px) {
   .c-search-filters {
@@ -76,27 +76,27 @@
 }
 
 .c-search-filters__title {
-  font-size: 2.2rem;
+  font-size: 22px;
 }
 @media (min-width: 800px) {
   .c-search-filters__title {
-    margin-bottom: 4rem;
+    margin-bottom: 40px;
   }
 }
 
 .c-search-filters__content {
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 30px;
 }
 
 .c-search-results {
   grid-column: 1/-1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 10px;
   background-color: var(--color-search-result-bg);
-  padding: 3rem 4rem;
+  padding: 30px 40px;
 }
 @media (min-width: 800px) {
   .c-search-results {
@@ -110,35 +110,36 @@
 }
 
 .c-search-results__title {
-  font-size: 2.2rem;
+  font-size: 22px;
 }
 
 .c-multiselect__list {
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+  margin-top: 10px;
+  margin-bottom: 5px;
 }
 
 .c-checkboxes {
   padding: 0;
+  border: none;
 }
 
 .c-checkboxes__item {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 10px;
 }
 
 .c-multiselect__option {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 10px;
 }
 
 .c-multiselect__input {
   border: none;
   border-bottom: 1px solid var(--color-black);
-  padding-bottom: 0.5rem;
-  padding-top: 0.5rem;
+  padding-bottom: 5px;
+  padding-top: 5px;
   background-color: transparent;
 }
 
@@ -150,7 +151,7 @@
 }
 
 .c-collapse__content {
-  padding-top: 1rem;
+  padding-top: 10px;
 }
 
 .c-fixed-ranges {
@@ -159,7 +160,7 @@
   margin: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 10px;
 }
 
 .c-fixed-ranges__option:last-of-type {
@@ -169,9 +170,9 @@
 .c-fixed-ranges__button {
   background-color: transparent;
   cursor: pointer;
-  padding: 0.5rem 1rem;
+  padding: 5px 10px;
   border: 1px solid black;
-  border-radius: 0.25rem;
+  border-radius: 2.5px;
   min-width: -moz-fit-content;
   min-width: fit-content;
 }
@@ -183,26 +184,26 @@
 .c-fixed-ranges__custom-inputs {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 1.5rem;
+  gap: 10px;
+  margin-top: 15px;
 }
 
 .c-fixed-ranges__custom {
   display: flex;
-  gap: 1rem;
+  gap: 10px;
   align-items: baseline;
 }
 
 .c-fixed-ranges__custom-title {
-  font-size: 1.6rem;
+  font-size: 16px;
 }
 
 .c-fixed-ranges__input {
   background-color: transparent;
-  padding: 0.5rem 1rem;
+  padding: 5px 10px;
   border: 1px solid black;
-  border-radius: 0.25rem;
-  width: 11rem;
+  border-radius: 2.5px;
+  width: 110px;
 }
 
 .c-fixed-ranges__input--selected {
@@ -210,15 +211,15 @@
 }
 
 .c-dropdown__select {
-  padding: 0.5rem 1rem;
+  padding: 5px 10px;
   border: 1px solid var(--color-black);
-  border-radius: 0.25rem;
+  border-radius: 2.5px;
   background-color: var(--color-white);
-  max-width: 20rem;
+  max-width: 200px;
 }
 
 .c-collapse__title {
-  font-size: 1.6rem;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -240,8 +241,8 @@
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 15px;
+  height: 15px;
   display: inline-block;
 }
 
@@ -250,10 +251,10 @@
 }
 
 .c-search-results__header {
-  padding-bottom: 3rem;
+  padding-bottom: 30px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3rem;
+  gap: 30px;
 }
 @media (min-width: 800px) {
   .c-search-results__header {
@@ -264,7 +265,7 @@
 .c-search-results__list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 3rem;
+  gap: 30px;
 }
 @media (min-width: 800px) {
   .c-search-results__list {
@@ -282,9 +283,9 @@
 }
 
 .c-sort__select {
-  padding: 0.5rem 1rem;
+  padding: 5px 10px;
   border: 1px solid var(--color-black);
-  border-radius: 0.25rem;
+  border-radius: 2.5px;
   background-color: var(--color-white);
   grid-column: 2/3;
   width: 100%;
@@ -294,20 +295,38 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 2rem;
+  gap: 20px;
+}
+
+.c-pagination__buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .c-pagination__button {
   background-color: transparent;
   border: none;
   cursor: pointer;
-  padding: 1.5rem;
+  width: 40px;
+  height: 40px;
   border: 1px solid var(--color-black);
-  border-radius: 0.25rem;
+  border-radius: 2.5px;
+}
+.c-pagination__button:hover {
+  background-color: var(--color-search-bg);
+}
+
+.c-pagination__button--active {
+  background-color: var(--color-black);
+  color: var(--color-white);
+}
+
+.c-pagination__button--arrow {
   background-image: url("/lib/images/arrow.svg");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 50%;
+  border: none;
 }
 
 .c-pagination__button:disabled {
@@ -325,10 +344,10 @@
 
 .u-visually-hidden {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: 10px;
+  height: 10px;
   padding: 0;
-  margin: -1px;
+  margin: -10px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;

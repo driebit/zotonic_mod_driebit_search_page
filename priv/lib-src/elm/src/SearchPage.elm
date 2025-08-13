@@ -48,7 +48,7 @@ type alias Model =
     , results : SearchResult
     , templateCache : Dict Int (List (Html Msg))
     , page : Int
-    , sortBy : String
+    , sortBy : Maybe String
     , language : Translations.Language
     , showFilters : Collapse
     , excludedCategories : List String
@@ -80,7 +80,7 @@ init flags =
       , fullTextSearchQuery = ""
       , templateCache = Dict.empty
       , page = 1
-      , sortBy = "-rsc.modified"
+      , sortBy = Nothing
       , language = language
       , showFilters = Collapse.fromPageWidth screenWidth
       , excludedCategories = excludeCategories
@@ -194,8 +194,15 @@ update msg model =
 
         ChangeSort newSort ->
             let
+                maybeNewSort =
+                    if newSort == "relevance" then
+                        Nothing
+
+                    else
+                        Just newSort
+
                 updatedModel =
-                    { model | sortBy = newSort, page = 1 }
+                    { model | sortBy = maybeNewSort, page = 1 }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParams updatedModel)
@@ -214,27 +221,40 @@ update msg model =
 
 encodedSearchParams : Model -> Decode.Value
 encodedSearchParams model =
-    model.filters
-        |> Dict.toList
-        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-        |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
-        |> List.append [ ( "sort", Encode.string model.sortBy ) ]
-        |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
+    model
+        |> searchParamsList
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
 
 
 encodedSearchParamsWithPage : Model -> Decode.Value
 encodedSearchParamsWithPage model =
+    model
+        |> searchParamsList
+        |> List.append [ ( "page", Encode.int model.page ) ]
+        |> Cotonic.searchPageTopic
+        |> Cotonic.toJson
+
+
+searchParamsList : Model -> List ( String, Encode.Value )
+searchParamsList model =
     model.filters
         |> Dict.toList
         |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
         |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
-        |> List.append [ ( "sort", Encode.string model.sortBy ) ]
+        |> addSortToSearchParams model.sortBy
         |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
         |> List.append [ ( "page", Encode.int model.page ) ]
-        |> Cotonic.searchPageTopic
-        |> Cotonic.toJson
+
+
+addSortToSearchParams : Maybe String -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
+addSortToSearchParams maybeSort params =
+    case maybeSort of
+        Just sort ->
+            params ++ [ ( "sort", Encode.string sort ) ]
+
+        Nothing ->
+            params
 
 
 
@@ -279,7 +299,7 @@ view model =
         ]
 
 
-viewResults : Language -> SearchResult -> Dict Int (List (Html Msg)) -> String -> Html Msg
+viewResults : Language -> SearchResult -> Dict Int (List (Html Msg)) -> Maybe String -> Html Msg
 viewResults language results templateCache activeSort =
     case results of
         NotAsked ->
@@ -316,21 +336,24 @@ viewResults language results templateCache activeSort =
             div [ class "c-search-results__error" ] [ text (translate language translations.errorPrefix ++ errorMsg) ]
 
 
-viewSort : Language -> String -> Html Msg
+viewSort : Language -> Maybe String -> Html Msg
 viewSort language activeSort =
     let
         sortOptions =
-            [ "pivot.title", "-rsc.modified", "-rsc.created" ]
+            [ Nothing, Just "pivot.title", Just "-rsc.modified", Just "-rsc.created" ]
 
         sortTranslation option_ =
             case option_ of
-                "pivot.title" ->
+                Nothing ->
+                    translate language translations.sortRelevance
+
+                Just "pivot.title" ->
                     translate language translations.sortTitle
 
-                "-rsc.modified" ->
+                Just "-rsc.modified" ->
                     translate language translations.sortModified
 
-                "-rsc.created" ->
+                Just "-rsc.created" ->
                     translate language translations.sortCreated
 
                 _ ->
@@ -341,7 +364,7 @@ viewSort language activeSort =
             (List.map
                 (\option_ ->
                     option
-                        [ value option_
+                        [ value (option_ |> Maybe.withDefault "relevance")
                         , selected (option_ == activeSort)
                         ]
                         [ text (sortTranslation option_) ]
