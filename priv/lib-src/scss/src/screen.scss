@@ -297,17 +297,36 @@ $largeBreakpoint: 1300px;
     gap: 20px;
 }
 
+.c-pagination__buttons {
+    display: flex;
+    gap: 10px;
+}
+
 .c-pagination__button {
     background-color: transparent;
     border: none;
     cursor: pointer;
-    padding: 15px;
+    width: 40px;
+    height: 40px;
     border: 1px solid var(--color-black);
     border-radius: 2.5px;
+
+    &:hover {
+        background-color: var(--color-search-bg);
+    }
+}
+
+.c-pagination__button--active {
+    background-color: var(--color-black);
+    color: var(--color-white);
+}
+
+.c-pagination__button--arrow {
     background-image: url("/lib/images/arrow.svg");
     background-repeat: no-repeat;
     background-position: center;
     background-size: 50%;
+    border: none;
 }
 
 .c-pagination__button:disabled {

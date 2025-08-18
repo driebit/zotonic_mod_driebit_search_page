@@ -1,5 +1,5 @@
 <div class="search__result">
     {% with q.id as id %}
-        {% include "list/list-item.tpl" id=id %}
+        {% catinclude "list/list-item.tpl" id %}
     {% endwith %}
 </div>
