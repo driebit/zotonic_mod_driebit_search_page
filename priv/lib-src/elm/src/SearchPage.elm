@@ -14,6 +14,7 @@ import Html.Parser.Util
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (sort)
+import Pagination
 import Task exposing (Task)
 import Time exposing (Month(..))
 import Translations exposing (Language, translate, translations)
@@ -47,10 +48,11 @@ type alias Model =
     , results : SearchResult
     , templateCache : Dict Int (List (Html Msg))
     , page : Int
-    , sortBy : String
+    , sortBy : Maybe String
     , language : Translations.Language
     , showFilters : Collapse
     , excludedCategories : List String
+    , pagination : Pagination.Model
     }
 
 
@@ -58,14 +60,14 @@ type SearchResult
     = NotAsked
     | WaitingForConnection
     | Loading
-    | Loaded (List Int) Int
+    | Loaded (List Int) Pagination.Model
     | Error String
 
 
 init : Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        { filters, language, screenWidth, excludeCategories } =
+        { filters, language, screenWidth, excludeCategories, queryString } =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
@@ -75,13 +77,14 @@ init flags =
     in
     ( { filters = filterDict
       , results = WaitingForConnection
-      , fullTextSearchQuery = ""
+      , fullTextSearchQuery = queryString |> Maybe.withDefault ""
       , templateCache = Dict.empty
       , page = 1
-      , sortBy = "-rsc.modified"
+      , sortBy = Nothing
       , language = language
       , showFilters = Collapse.fromPageWidth screenWidth
       , excludedCategories = excludeCategories
+      , pagination = Pagination.init
       }
     , Cmd.none
     )
@@ -94,8 +97,7 @@ type Msg
     | FullTextSearchInput String
     | CotonicReady Bool
     | ChangeSort String
-    | NextPage
-    | PreviousPage
+    | ChangePage Int
     | ScreenResized Int
 
 
@@ -124,10 +126,10 @@ update msg model =
                         decoder =
                             Decode.map2 Loaded
                                 (Decode.at [ "reply", "payload", "result", "result" ] (Decode.list Decode.int))
-                                (Decode.at [ "reply", "payload", "result", "total" ] Decode.int)
+                                (Decode.at [ "reply", "payload", "result" ] Pagination.fromJson)
                     in
                     case Decode.decodeValue decoder reply of
-                        Ok (Loaded results total) ->
+                        Ok (Loaded results paginationInfo) ->
                             let
                                 templateCalls =
                                     results
@@ -135,7 +137,7 @@ update msg model =
                                         |> List.map Cotonic.toJson
                                         |> List.map searchPageCall
                             in
-                            ( { model | results = Loaded results total }, Cmd.batch templateCalls )
+                            ( { model | results = Loaded results paginationInfo, pagination = paginationInfo }, Cmd.batch templateCalls )
 
                         Ok _ ->
                             ( { model | results = Error "Search results returned an unexpected format" }, Cmd.none )
@@ -181,29 +183,10 @@ update msg model =
         CotonicReady _ ->
             ( { model | results = Loading }, searchPageCall (encodedSearchParams model) )
 
-        NextPage ->
+        ChangePage pageNumber ->
             let
-                nextPage =
-                    model.page + 1
-
                 updatedModel =
-                    { model | page = nextPage }
-            in
-            ( updatedModel
-            , searchPageCall (encodedSearchParamsWithPage updatedModel)
-            )
-
-        PreviousPage ->
-            let
-                previousPage =
-                    if model.page > 1 then
-                        model.page - 1
-
-                    else
-                        1
-
-                updatedModel =
-                    { model | page = previousPage }
+                    { model | page = pageNumber }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParamsWithPage updatedModel)
@@ -211,8 +194,15 @@ update msg model =
 
         ChangeSort newSort ->
             let
+                maybeNewSort =
+                    if newSort == "relevance" then
+                        Nothing
+
+                    else
+                        Just newSort
+
                 updatedModel =
-                    { model | sortBy = newSort, page = 1 }
+                    { model | sortBy = maybeNewSort, page = 1 }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParams updatedModel)
@@ -231,27 +221,40 @@ update msg model =
 
 encodedSearchParams : Model -> Decode.Value
 encodedSearchParams model =
-    model.filters
-        |> Dict.toList
-        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-        |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
-        |> List.append [ ( "sort", Encode.string model.sortBy ) ]
-        |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
+    model
+        |> searchParamsList
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
 
 
 encodedSearchParamsWithPage : Model -> Decode.Value
 encodedSearchParamsWithPage model =
+    model
+        |> searchParamsList
+        |> List.append [ ( "page", Encode.int model.page ) ]
+        |> Cotonic.searchPageTopic
+        |> Cotonic.toJson
+
+
+searchParamsList : Model -> List ( String, Encode.Value )
+searchParamsList model =
     model.filters
         |> Dict.toList
         |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
         |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
-        |> List.append [ ( "sort", Encode.string model.sortBy ) ]
+        |> addSortToSearchParams model.sortBy
         |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
         |> List.append [ ( "page", Encode.int model.page ) ]
-        |> Cotonic.searchPageTopic
-        |> Cotonic.toJson
+
+
+addSortToSearchParams : Maybe String -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
+addSortToSearchParams maybeSort params =
+    case maybeSort of
+        Just sort ->
+            params ++ [ ( "sort", Encode.string sort ) ]
+
+        Nothing ->
+            params
 
 
 
@@ -291,12 +294,12 @@ view model =
         , div [ class "c-search-results" ]
             [ viewResults model.language model.results model.templateCache model.sortBy
             , div [ class "c-pagination" ]
-                [ viewPagination model.language model.page ]
+                [ Pagination.view model.language model.pagination ChangePage ]
             ]
         ]
 
 
-viewResults : Language -> SearchResult -> Dict Int (List (Html Msg)) -> String -> Html Msg
+viewResults : Language -> SearchResult -> Dict Int (List (Html Msg)) -> Maybe String -> Html Msg
 viewResults language results templateCache activeSort =
     case results of
         NotAsked ->
@@ -311,7 +314,7 @@ viewResults language results templateCache activeSort =
             div [ class "c-search-results__notice" ]
                 [ text (translate language translations.waitingForConnection) ]
 
-        Loaded resultIds totalResults ->
+        Loaded resultIds paginationInfo ->
             let
                 resultTemplates =
                     resultIds
@@ -323,7 +326,7 @@ viewResults language results templateCache activeSort =
             else
                 div [ class "c-search-results__wrapper" ]
                     [ div [ class "c-search-results__header" ]
-                        [ h3 [ class "c-search-results__title" ] [ text (String.fromInt totalResults ++ " " ++ translate language translations.results) ]
+                        [ h3 [ class "c-search-results__title" ] [ text (String.fromInt paginationInfo.totalResults ++ " " ++ translate language translations.results) ]
                         , viewSort language activeSort
                         ]
                     , ul [ class "c-search-results__list" ] (List.map (div [ class "c-search-results__item" ]) resultTemplates)
@@ -333,39 +336,24 @@ viewResults language results templateCache activeSort =
             div [ class "c-search-results__error" ] [ text (translate language translations.errorPrefix ++ errorMsg) ]
 
 
-viewPagination : Language -> Int -> Html Msg
-viewPagination language currentPage =
-    div [ class "c-pagination" ]
-        [ button
-            [ class "c-pagination__button c-pagination__button--previous"
-            , onClick PreviousPage
-            , disabled (currentPage <= 1)
-            ]
-            [ span [ class "u-visually-hidden" ] [ text (translate language translations.previous) ] ]
-        , span [ class "c-pagination__current-page" ] [ text (String.fromInt currentPage) ]
-        , button
-            [ class "c-pagination__button c-pagination__button--next"
-            , onClick NextPage
-            ]
-            [ span [ class "u-visually-hidden" ] [ text (translate language translations.next) ] ]
-        ]
-
-
-viewSort : Language -> String -> Html Msg
+viewSort : Language -> Maybe String -> Html Msg
 viewSort language activeSort =
     let
         sortOptions =
-            [ "pivot.title", "-rsc.modified", "-rsc.created" ]
+            [ Nothing, Just "pivot.title", Just "-rsc.modified", Just "-rsc.created" ]
 
         sortTranslation option_ =
             case option_ of
-                "pivot.title" ->
+                Nothing ->
+                    translate language translations.sortRelevance
+
+                Just "pivot.title" ->
                     translate language translations.sortTitle
 
-                "-rsc.modified" ->
+                Just "-rsc.modified" ->
                     translate language translations.sortModified
 
-                "-rsc.created" ->
+                Just "-rsc.created" ->
                     translate language translations.sortCreated
 
                 _ ->
@@ -376,7 +364,7 @@ viewSort language activeSort =
             (List.map
                 (\option_ ->
                     option
-                        [ value option_
+                        [ value (option_ |> Maybe.withDefault "relevance")
                         , selected (option_ == activeSort)
                         ]
                         [ text (sortTranslation option_) ]
