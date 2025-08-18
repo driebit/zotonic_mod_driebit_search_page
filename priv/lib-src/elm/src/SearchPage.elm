@@ -67,7 +67,7 @@ type SearchResult
 init : Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        { filters, language, screenWidth, excludeCategories } =
+        { filters, language, screenWidth, excludeCategories, queryString } =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
@@ -77,7 +77,7 @@ init flags =
     in
     ( { filters = filterDict
       , results = WaitingForConnection
-      , fullTextSearchQuery = ""
+      , fullTextSearchQuery = queryString |> Maybe.withDefault ""
       , templateCache = Dict.empty
       , page = 1
       , sortBy = Nothing
