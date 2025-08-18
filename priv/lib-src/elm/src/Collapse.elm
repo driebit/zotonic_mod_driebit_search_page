@@ -44,8 +44,8 @@ update msg collapse =
                     NotCollapsable
 
 
-view : Collapse -> String -> Html msg -> Html msg
-view collapse title content =
+view : Collapse -> Html msg -> Html msg -> Html msg
+view collapse summary_ content =
     case collapse of
         Collapsabable state ->
             details
@@ -57,13 +57,13 @@ view collapse title content =
                             []
                        )
                 )
-                [ summary [ class "c-collapse__summary" ] [ h3 [ class "c-collapse__title" ] [ text title ] ]
+                [ summary [ class "c-collapse__summary" ] [ summary_ ]
                 , div [ class "c-collapse__content" ] [ content ]
                 ]
 
         NotCollapsable ->
             div [ class "c-collapse--uncollapsable" ]
-                [ h3 [ class "c-collapse__title" ] [ text title ]
+                [ h3 [ class "c-collapse__title" ] [ summary_ ]
                 , div [ class "c-collapse__content" ] [ content ]
                 ]
 

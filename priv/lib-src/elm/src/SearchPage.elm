@@ -78,7 +78,7 @@ init flags =
       , fullTextSearchQuery = ""
       , templateCache = Dict.empty
       , page = 1
-      , sortBy = "pivot.title"
+      , sortBy = "-rsc.modified"
       , language = language
       , showFilters = Collapse.fromPageWidth screenWidth
       , excludedCategories = excludeCategories
@@ -262,20 +262,22 @@ view : Model -> Html Msg
 view model =
     div [ class "c-search" ]
         [ div [ class "c-full-text-search" ]
-            [ input
-                [ class "c-full-text-search__searchbar"
-                , type_ "text"
-                , placeholder (translate model.language translations.searchPlaceholder)
-                , value model.fullTextSearchQuery
-                , onInput FullTextSearchInput
-                , id "search-bar"
+            [ div [ class "c-full-text-search__wrapper" ]
+                [ input
+                    [ class "c-full-text-search__searchbar"
+                    , type_ "text"
+                    , placeholder (translate model.language translations.searchPlaceholder)
+                    , value model.fullTextSearchQuery
+                    , onInput FullTextSearchInput
+                    , id "search-bar"
+                    ]
+                    []
                 ]
-                []
             ]
         , div [ class "c-search-filters" ]
             [ Collapse.view
                 model.showFilters
-                (translate model.language translations.searchFilters)
+                (h2 [ class "c-search-filters__title" ] [ text (translate model.language translations.searchFilters) ])
                 (div
                     [ class "c-search-filters__content" ]
                     (List.map

@@ -25,22 +25,40 @@
   gap: 1rem;
 }
 
-.c-full-text-search__searchbar {
+.c-full-text-search__wrapper {
+  position: relative;
   width: 50rem;
   height: 4rem;
-  max-width: 100%;
-  padding: 1rem;
-  background-color: #f0f0f0;
-  border: 1px solid var(--color-black);
-  border-radius: 0.25rem;
   width: calc(100% - 8rem);
   margin: 0 auto;
   grid-column: 1/-1;
 }
 @media (min-width: 1000px) {
-  .c-full-text-search__searchbar {
+  .c-full-text-search__wrapper {
     grid-column: 2/5;
   }
+}
+
+.c-full-text-search__wrapper::after {
+  content: "";
+  position: absolute;
+  background-image: url("/lib/images/search.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  width: 2.2rem;
+  height: 2.2rem;
+  top: 50%;
+  right: 2.5rem;
+  transform: translateY(calc(-50% + 0.8rem));
+}
+
+.c-full-text-search__searchbar {
+  width: 100%;
+  padding: 1rem;
+  background-color: #f0f0f0;
+  border: 1px solid var(--color-black);
+  border-radius: 0.25rem;
 }
 
 .c-search-filters {
@@ -49,12 +67,20 @@
   flex-direction: column;
   gap: 3rem;
   background-color: var(--color-search-filter-bg);
-  padding: 2rem;
-  border-right: 1px solid var(--color-search-bg);
+  padding: 3rem;
 }
-@media (min-width: 600px) {
+@media (min-width: 800px) {
   .c-search-filters {
     grid-column: 1/2;
+  }
+}
+
+.c-search-filters__title {
+  font-size: 2.2rem;
+}
+@media (min-width: 800px) {
+  .c-search-filters__title {
+    margin-bottom: 4rem;
   }
 }
 
@@ -83,6 +109,10 @@
   }
 }
 
+.c-search-results__title {
+  font-size: 2.2rem;
+}
+
 .c-multiselect__list {
   margin-top: 1rem;
   margin-bottom: 0.5rem;
@@ -109,6 +139,7 @@
   border-bottom: 1px solid var(--color-black);
   padding-bottom: 0.5rem;
   padding-top: 0.5rem;
+  background-color: transparent;
 }
 
 .c-multiselect__show-more {
@@ -119,7 +150,6 @@
 }
 
 .c-collapse__content {
-  padding-left: 3rem;
   padding-top: 1rem;
 }
 
@@ -130,6 +160,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.c-fixed-ranges__option:last-of-type {
+  width: 100%;
 }
 
 .c-fixed-ranges__button {
@@ -218,8 +252,13 @@
 .c-search-results__header {
   padding-bottom: 3rem;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 3rem;
+}
+@media (min-width: 800px) {
+  .c-search-results__header {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
 }
 
 .c-search-results__list {
