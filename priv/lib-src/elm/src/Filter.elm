@@ -3,6 +3,7 @@ module Filter exposing (..)
 import Collapse exposing (Collapse)
 import DateComponent exposing (DateComponent)
 import Html exposing (..)
+import Html.Attributes exposing (class)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Resource
@@ -133,12 +134,12 @@ view language filter =
     case filter.component of
         TextualComponent textualComponent ->
             Collapse.view filter.collapse
-                filter.title
+                (h3 [ class "c-collapse__title" ] [ text filter.title ])
                 (Html.map TextualComponentMsg (TextualComponent.view language textualComponent))
 
         DateComponent dateComponent ->
             Collapse.view filter.collapse
-                filter.title
+                (h3 [ class "c-collapse__title" ] [ text filter.title ])
                 (Html.map DateComponentMsg (DateComponent.view language dateComponent))
 
 

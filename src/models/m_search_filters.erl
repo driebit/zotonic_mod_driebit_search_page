@@ -33,7 +33,7 @@ m_get(_Path, _Msg, _Context) ->
 
 
 search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
-    BaseProps = base_props(Filter),
+    BaseProps = base_props(Filter, Context),
     SelectedCategory = maps:get(<<"selected_category">>, Filter, undefined),
     Options = 
         case SelectedCategory of
@@ -71,7 +71,7 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
   
 
 search_filter(#{<<"type">> := <<"category_filter">>} = Filter, Context) ->
-    BaseProps = base_props(Filter),
+    BaseProps = base_props(Filter, Context),
     SelectedCategories = maps:get(<<"show_categories">>, Filter, []),
     maps:merge(BaseProps, #{
         <<"options">> => add_title(lists:filter(fun(Value) -> not z_utils:is_empty(Value) end, SelectedCategories), Context),
@@ -79,8 +79,8 @@ search_filter(#{<<"type">> := <<"category_filter">>} = Filter, Context) ->
     });
 
     
-search_filter(#{<<"type">> := <<"date_filter">>} = Filter, _Context) ->
-    BaseProps = base_props(Filter),
+search_filter(#{<<"type">> := <<"date_filter">>} = Filter, Context) ->
+    BaseProps = base_props(Filter, Context),
     DateProp = maps:get(<<"date_prop">>, Filter, undefined),
     maps:merge(BaseProps, #{
         <<"date_prop">> => DateProp,
@@ -91,7 +91,7 @@ search_filter(Filter, _Context) ->
     %% For other filter types, return the filter as is
     Filter.
 
-base_props(Filter) ->
+base_props(Filter, Context) ->
     Name = maps:get(<<"name">>, Filter),
     Collapse = maps:get(<<"collapse">>, Filter, collapsed),
     Component = maps:get(<<"component">>, Filter, <<"dropdown">>),
@@ -100,7 +100,7 @@ base_props(Filter) ->
         <<"name">> => Name,
         <<"collapse">> => Collapse,
         <<"component">> => Component,
-        <<"title">> => Title
+        <<"title">> => z_trans:lookup_fallback(Title, Context)
     }.
 
 add_title(Ids, Context) ->
