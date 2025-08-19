@@ -12,6 +12,8 @@
 
 -mod_prio(500).
 
+-mod_schema(1).
+
 -export([observe_admin_menu/3, manage_schema/2, observe_admin_edit_blocks/3]).
 
 

@@ -10,7 +10,7 @@
 -include_lib("zotonic_core/include/zotonic.hrl").
 
 m_get([<<"json">>, Id |Rest], _Msg, Context) ->
-    Blocks = m_rsc:p(Id, <<"blocks">>, Context),
+    Blocks = m_rsc:p(Id, <<"blocks">>, [], Context),
     Filters = lists:map(fun(Block) ->
         search_filter(Block, Context)
     end, Blocks),
