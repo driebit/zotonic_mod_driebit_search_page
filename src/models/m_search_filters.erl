@@ -14,7 +14,6 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     Filters = lists:map(fun(Block) ->
         search_filter(Block, Context)
     end, Blocks),
-    % why does it break adding a default here?
     ExcludedCategories = m_rsc:p(Id, <<"exclude_categories">>, Context),
     FilteredExludedCategories = 
         lists:filter(fun(Cat) -> not z_utils:is_empty(Cat) end, ExcludedCategories),

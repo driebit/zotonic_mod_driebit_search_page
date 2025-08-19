@@ -1,12 +1,12 @@
-module TextualComponent exposing (..)
+module Filter.TextualComponent exposing (..)
 
+import Filter.TextualComponent.Checkboxes as Checkboxes
+import Filter.TextualComponent.Dropdown as Dropdown
+import Filter.TextualComponent.Multiselect as Multiselect
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Resource exposing (Resource)
-import TextualComponent.Checkboxes as Checkboxes
-import TextualComponent.Dropdown as Dropdown
-import TextualComponent.Multiselect as Multiselect
 import Translations exposing (Language)
 
 

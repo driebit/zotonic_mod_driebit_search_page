@@ -1,4 +1,4 @@
-module TextualComponent.Checkboxes exposing (..)
+module Filter.TextualComponent.Checkboxes exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)

@@ -1,4 +1,4 @@
-module TextualComponent.Dropdown exposing (..)
+module Filter.TextualComponent.Dropdown exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)

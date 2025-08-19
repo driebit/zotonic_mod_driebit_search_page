@@ -1,4 +1,4 @@
-module DateComponent.Calendar exposing (..)
+module Filter.DateComponent.Calendar exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
