@@ -47,7 +47,6 @@ type alias Model =
     , fullTextSearchQuery : String
     , results : SearchResult
     , templateCache : Dict Int (List (Html Msg))
-    , page : Int
     , sortBy : Maybe String
     , language : Translations.Language
     , showFilters : Collapse
@@ -79,7 +78,6 @@ init flags =
       , results = WaitingForConnection
       , fullTextSearchQuery = queryString |> Maybe.withDefault ""
       , templateCache = Dict.empty
-      , page = 1
       , sortBy = Nothing
       , language = language
       , showFilters = Collapse.fromPageWidth screenWidth
@@ -114,8 +112,14 @@ update msg model =
                         (Maybe.map (Filter.update filterMsg))
                         model.filters
 
+                pagination =
+                    model.pagination
+
+                updatedPagination =
+                    { pagination | currentPage = 1 }
+
                 updatedModel =
-                    { model | filters = updatedFilters, page = 1 }
+                    { model | filters = updatedFilters, pagination = updatedPagination }
             in
             ( updatedModel, searchPageCall (encodedSearchParams updatedModel) )
 
@@ -173,8 +177,11 @@ update msg model =
 
         FullTextSearchInput query ->
             let
+                pagination =
+                    model.pagination
+
                 updatedModel =
-                    { model | fullTextSearchQuery = query, page = 1 }
+                    { model | fullTextSearchQuery = query, pagination = { pagination | currentPage = 1 } }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParams updatedModel)
@@ -185,8 +192,11 @@ update msg model =
 
         ChangePage pageNumber ->
             let
+                pagination =
+                    model.pagination
+
                 updatedModel =
-                    { model | page = pageNumber }
+                    { model | pagination = { pagination | currentPage = pageNumber } }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParamsWithPage updatedModel)
@@ -201,8 +211,11 @@ update msg model =
                     else
                         Just newSort
 
+                pagination =
+                    model.pagination
+
                 updatedModel =
-                    { model | sortBy = maybeNewSort, page = 1 }
+                    { model | sortBy = maybeNewSort, pagination = { pagination | currentPage = 1 } }
             in
             ( updatedModel
             , searchPageCall (encodedSearchParams updatedModel)
@@ -231,7 +244,7 @@ encodedSearchParamsWithPage : Model -> Decode.Value
 encodedSearchParamsWithPage model =
     model
         |> searchParamsList
-        |> List.append [ ( "page", Encode.int model.page ) ]
+        |> List.append [ ( "page", Encode.int model.pagination.currentPage ) ]
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
 
@@ -244,7 +257,7 @@ searchParamsList model =
         |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
         |> addSortToSearchParams model.sortBy
         |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
-        |> List.append [ ( "page", Encode.int model.page ) ]
+        |> List.append [ ( "page", Encode.int model.pagination.currentPage ) ]
 
 
 addSortToSearchParams : Maybe String -> List ( String, Encode.Value ) -> List ( String, Encode.Value )

@@ -39,10 +39,9 @@
 
         cotonic.ready.then(
             function() {
-                // add extra timeout for subscribing to a topic
-                setTimeout(function() { 
+                cotonic.broker.subscribe("$bridge/origin/status", function(msg){
                     searchApp.ports.connected.send(true);
-                }, 100);
+                })
             });
 
         window.addEventListener('resize', function() {
