@@ -1,4 +1,4 @@
-module TextualComponent.Multiselect exposing (..)
+module Filter.TextualComponent.Multiselect exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)

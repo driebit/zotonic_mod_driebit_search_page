@@ -1,13 +1,13 @@
 module Filter exposing (..)
 
 import Collapse exposing (Collapse)
-import DateComponent exposing (DateComponent)
+import Filter.DateComponent as DateComponent exposing (DateComponent)
+import Filter.TextualComponent as TextualComponent exposing (TextualComponent)
 import Html exposing (..)
 import Html.Attributes exposing (class)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Resource
-import TextualComponent exposing (TextualComponent)
 import Translations exposing (Language)
 
 

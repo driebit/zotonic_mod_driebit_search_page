@@ -8,7 +8,7 @@ import Json.Decode as Decode exposing (Decoder)
 
 type Collapse
     = Collapsabable CollapseState
-    | NotCollapsable
+    | NotCollapsible
 
 
 fromPageWidth : Int -> Collapse
@@ -17,7 +17,7 @@ fromPageWidth width =
         Collapsabable Closed
 
     else
-        NotCollapsable
+        NotCollapsible
 
 
 type CollapseState
@@ -40,8 +40,8 @@ update msg collapse =
                 Collapsabable Closed ->
                     Collapsabable Open
 
-                NotCollapsable ->
-                    NotCollapsable
+                NotCollapsible ->
+                    NotCollapsible
 
 
 view : Collapse -> Html msg -> Html msg -> Html msg
@@ -61,8 +61,8 @@ view collapse summary_ content =
                 , div [ class "c-collapse__content" ] [ content ]
                 ]
 
-        NotCollapsable ->
-            div [ class "c-collapse--uncollapsable" ]
+        NotCollapsible ->
+            div [ class "c-collapse--uncollapsible" ]
                 [ h3 [ class "c-collapse__title" ] [ summary_ ]
                 , div [ class "c-collapse__content" ] [ content ]
                 ]
@@ -80,8 +80,8 @@ fromJson =
                     "not_collapsed" ->
                         Decode.succeed (Collapsabable Open)
 
-                    "uncollapsable" ->
-                        Decode.succeed NotCollapsable
+                    "uncollapsible" ->
+                        Decode.succeed NotCollapsible
 
                     _ ->
                         Decode.fail ("Unknown collapse state: " ++ str)

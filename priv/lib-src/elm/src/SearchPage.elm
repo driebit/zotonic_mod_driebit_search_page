@@ -89,8 +89,7 @@ init flags =
 
 
 type Msg
-    = NoOp
-    | FilterMsg String Filter.Msg
+    = FilterMsg String Filter.Msg
     | SearchPageReply Decode.Value
     | FullTextSearchInput String
     | CotonicReady Bool
@@ -102,9 +101,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
         FilterMsg id filterMsg ->
             let
                 updatedFilters =
@@ -251,23 +247,25 @@ encodedSearchParamsWithPage model =
 
 searchParamsList : Model -> List ( String, Encode.Value )
 searchParamsList model =
-    model.filters
-        |> Dict.toList
-        |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
-        |> List.append [ ( "text", Encode.string model.fullTextSearchQuery ) ]
-        |> addSortToSearchParams model.sortBy
-        |> List.append [ ( "cat_exclude", Encode.list Encode.string model.excludedCategories ) ]
-        |> List.append [ ( "page", Encode.int model.pagination.currentPage ) ]
+    let
+        baseFilters =
+            model.filters
+                |> Dict.toList
+                |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
 
-
-addSortToSearchParams : Maybe String -> List ( String, Encode.Value ) -> List ( String, Encode.Value )
-addSortToSearchParams maybeSort params =
-    case maybeSort of
+        filters =
+            ( "text", Encode.string model.fullTextSearchQuery )
+                :: ( "cat_exclude", Encode.list Encode.string model.excludedCategories )
+                :: ( "page", Encode.int model.pagination.currentPage )
+                :: baseFilters
+    in
+    case model.sortBy of
         Just sort ->
-            params ++ [ ( "sort", Encode.string sort ) ]
+            ( "sort", Encode.string sort )
+                :: filters
 
         Nothing ->
-            params
+            filters
 
 
 

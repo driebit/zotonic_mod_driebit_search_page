@@ -46,7 +46,7 @@
                 </div>
                 <div>
                     <label>
-                        <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.collapse == 'uncollapsable' %}checked{% endif %} value="uncollapsable" id="uncollapsable">
+                        <input type="radio" name="blocks[].collapse~{{ name }}" {% if blk.collapse == 'uncollapsible' %}checked{% endif %} value="uncollapsible" id="uncollapsible">
                         {_ Show without collapse _}
                     </label>
                 </div>
