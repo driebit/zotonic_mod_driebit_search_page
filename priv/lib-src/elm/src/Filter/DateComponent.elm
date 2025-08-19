@@ -1,7 +1,7 @@
-module DateComponent exposing (..)
+module Filter.DateComponent exposing (..)
 
-import DateComponent.Calendar as Calendar
-import DateComponent.FixedRanges as FixedRanges
+import Filter.DateComponent.Calendar as Calendar
+import Filter.DateComponent.FixedRanges as FixedRanges
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode as Decode exposing (Decoder)

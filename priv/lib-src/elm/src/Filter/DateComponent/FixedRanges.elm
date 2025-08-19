@@ -1,4 +1,4 @@
-module DateComponent.FixedRanges exposing (..)
+module Filter.DateComponent.FixedRanges exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
