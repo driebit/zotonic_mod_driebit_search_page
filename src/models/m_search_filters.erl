@@ -34,24 +34,36 @@ m_get(_Path, _Msg, _Context) ->
 search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
     BaseProps = base_props(Filter, Context),
     SelectedCategory = maps:get(<<"selected_category">>, Filter, undefined),
-    Options = 
-        case SelectedCategory of
-            undefined -> [];
-            Category -> 
-                case m_search:search({query, [{cat, Category}, {pagelen, 1000}]}, Context) of 
-                    #search_result{result = Result} ->
-                        add_title(Result, Context);
-                    _Res -> 
-                        []
-                end
-        end,
+    
     Predicate = maps:get(<<"selected_predicate">>, Filter, undefined),
     PredicateName = 
         case Predicate of
             undefined -> undefined;
             Pred -> m_rsc:p(Pred, name, undefined, Context)
         end,
-    
+    Options = 
+        case SelectedCategory of
+            undefined -> [];
+            Category -> 
+                case PredicateName of
+                    undefined -> 
+                        %% Perform search to get the options for the selected category
+                        case m_search:search({query, [{cat, Category}, {pagelen, 1000}]}, Context) of 
+                            #search_result{result = Result} ->
+                                add_title(Result, Context);
+                            _Res -> 
+                                []
+                        end;
+                    _ -> 
+                        %% Perform search to get the options for the selected category. Only include resources that are actually used with the selected predicate
+                        case m_search:search({query, [{cat, Category}, {pagelen, 1000}, {hasanysubject, ['*', PredicateName]}]}, Context) of 
+                            #search_result{result = Result} ->
+                                add_title(Result, Context);
+                            _Res -> 
+                                []
+                        end
+                end
+        end,
     % only add predicate if it is not undefined
     Props = maps:merge(BaseProps, #{
         <<"selected_category">> => SelectedCategory,
