@@ -80,7 +80,10 @@ search_filter(#{<<"type">> := <<"category_filter">>} = Filter, Context) ->
     
 search_filter(#{<<"type">> := <<"date_filter">>} = Filter, Context) ->
     BaseProps = base_props(Filter, Context),
-    DateProp = maps:get(<<"date_prop">>, Filter, undefined),
+    DateProp = case maps:get(<<"date_prop">>, Filter, undefined) of 
+        <<"custom">> -> maps:get(<<"custom_date_prop">>, Filter, undefined);
+        Prop -> Prop
+    end,
     maps:merge(BaseProps, #{
         <<"date_prop">> => DateProp,
         <<"type">> => <<"date_filter">>
