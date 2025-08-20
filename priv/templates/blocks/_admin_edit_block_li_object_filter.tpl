@@ -8,7 +8,7 @@
     <h3>{_ Category _}</h3>
     <p>{_ Select a category. All resources with this category become search filters. _}</p>
     <select class="form-control" name="blocks[].selected_category~{{ name }}">
-        {% for c in m.category.tree_flat %}
+        {% for c in m.category.tree_flat_meta %}
             <option value="{{ c.id }}" {% if c.id == blk.selected_category %}selected="selected"{% endif %}>
                 {{ c.indent }}{{ c.id.title|default:c.id.name }}
             </option>

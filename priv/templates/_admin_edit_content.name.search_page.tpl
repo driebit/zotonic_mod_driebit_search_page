@@ -14,7 +14,7 @@
     <h3> {_ Exclude categories from search results _} </h3>
     <p> {_ Choose the categories that are excluded in the search filters. _} </p>
     <div class="checkbox">
-        {% for c in m.category.tree_flat %}
+        {% for c in m.category.tree_flat_meta %}
             <div>
                 <label>
                     <input type="checkbox" name="exclude_categories[]~{{ name }}" {% if c.id|member:id.exclude_categories %}checked{% endif %} value="{{ c.id }}" id="{{ c.id }}">
