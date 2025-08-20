@@ -43,7 +43,7 @@ main =
 
 
 type alias Model =
-    { filters : Dict String Filter
+    { filters : List Filter
     , fullTextSearchQuery : String
     , results : SearchResult
     , templateCache : Dict Int (List (Html Msg))
@@ -69,12 +69,8 @@ init flags =
         { filters, language, screenWidth, excludeCategories, queryString } =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
-
-        filterDict =
-            List.map (\filter -> ( filter.id, filter )) filters
-                |> Dict.fromList
     in
-    ( { filters = filterDict
+    ( { filters = filters
       , results = WaitingForConnection
       , fullTextSearchQuery = queryString |> Maybe.withDefault ""
       , templateCache = Dict.empty
@@ -104,9 +100,15 @@ update msg model =
         FilterMsg id filterMsg ->
             let
                 updatedFilters =
-                    Dict.update id
-                        (Maybe.map (Filter.update filterMsg))
-                        model.filters
+                    model.filters
+                        |> List.map
+                            (\filter ->
+                                if filter.id == id then
+                                    Filter.update filterMsg filter
+
+                                else
+                                    filter
+                            )
 
                 pagination =
                     model.pagination
@@ -250,8 +252,7 @@ searchParamsList model =
     let
         baseFilters =
             model.filters
-                |> Dict.toList
-                |> List.concatMap (\( _, filter ) -> Filter.toSearchParams filter)
+                |> List.concatMap Filter.toSearchParams
 
         filters =
             ( "text", Encode.string model.fullTextSearchQuery )
@@ -295,10 +296,10 @@ view model =
                 (div
                     [ class "c-search-filters__content" ]
                     (List.map
-                        (\( id, filter ) ->
-                            Html.map (FilterMsg id) (Filter.view model.language filter)
+                        (\filter ->
+                            Html.map (FilterMsg filter.id) (Filter.view model.language filter)
                         )
-                        (Dict.toList model.filters)
+                        model.filters
                     )
                 )
             ]
