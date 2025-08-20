@@ -113,52 +113,10 @@ update msg model =
                 { model | selectedRange = Just range }
 
         EnterStartDate start ->
-            let
-                cleanedStart =
-                    removeInvalidDateChars start
-
-                newSelectedRange =
-                    if isValidDate cleanedStart then
-                        Just Custom
-
-                    else
-                        Nothing
-            in
-            { model | customStart = cleanedStart, selectedRange = newSelectedRange }
+            { model | customStart = start, selectedRange = Just Custom }
 
         EnterEndDate end ->
-            let
-                cleanedEnd =
-                    removeInvalidDateChars end
-
-                newSelectedRange =
-                    if isValidDate cleanedEnd then
-                        Just Custom
-
-                    else
-                        Nothing
-            in
-            { model | customEnd = cleanedEnd, selectedRange = newSelectedRange }
-
-
-removeInvalidDateChars : String -> String
-removeInvalidDateChars date =
-    String.filter (\c -> Char.isDigit c || c == '-' || c == '/') date
-
-
-isValidDate : String -> Bool
-isValidDate date =
-    case String.split "-" date of
-        [ day, month, year ] ->
-            case ( String.toInt day, String.toInt month, String.toInt year ) of
-                ( Just d, Just m, Just y ) ->
-                    d > 0 && d < 32 && m > 0 && m <= 12 && y > 1000 && y < 3000
-
-                _ ->
-                    False
-
-        _ ->
-            False
+            { model | customEnd = end, selectedRange = Just Custom }
 
 
 view : Language -> Model -> Html Msg
@@ -198,7 +156,7 @@ viewOption language selectedRange start end currentRange =
                         [ label [ class "c-fixed-ranges__label" ] [ text (translate language translations.fixedRangesFrom) ]
                         , input
                             [ classList [ ( "c-fixed-ranges__input", True ), ( "c-fixed-ranges__input--selected", isSelected ) ]
-                            , type_ "text"
+                            , type_ "date"
                             , placeholder (translate language translations.fixedRangesPlaceholder)
                             , value start
                             , onInput EnterStartDate
@@ -209,7 +167,7 @@ viewOption language selectedRange start end currentRange =
                         [ label [ class "c-fixed-ranges__label" ] [ text (translate language translations.fixedRangesTo) ]
                         , input
                             [ classList [ ( "c-fixed-ranges__input", True ), ( "c-fixed-ranges__input--selected", isSelected ) ]
-                            , type_ "text"
+                            , type_ "date"
                             , placeholder (translate language translations.fixedRangesPlaceholder)
                             , value end
                             , onInput EnterEndDate
