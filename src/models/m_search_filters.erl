@@ -55,7 +55,7 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
                                 []
                         end;
                     _ -> 
-                        %% Perform search to get the options for the selected category. Only include keywords that are actually used with the selected predicate
+                        %% Perform search to get the options for the selected category. Only include resources that are actually used with the selected predicate
                         case m_search:search({query, [{cat, Category}, {pagelen, 1000}, {hasanysubject, ['*', PredicateName]}]}, Context) of 
                             #search_result{result = Result} ->
                                 add_title(Result, Context);
