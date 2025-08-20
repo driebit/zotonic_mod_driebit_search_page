@@ -26,7 +26,7 @@
                     {_ Modification date _}
                 </label>
             </div>
-            <div style="display:flex; algin-items:center;">
+            <div style="display:flex; align-items:center;">
                 <label>
                     <input type="radio" name="blocks[].date_prop~{{ name }}" {% if blk.date_prop == "custom" %}checked{% endif %} value="custom" id="custom">
                     {_ Custom _}
