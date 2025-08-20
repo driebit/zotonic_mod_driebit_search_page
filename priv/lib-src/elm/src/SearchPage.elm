@@ -261,7 +261,7 @@ searchParamsList model =
     in
     case model.sortBy of
         Just sort ->
-            ( "sort", Encode.string sort )
+            ( "asort", Encode.string sort )
                 :: filters
 
         Nothing ->

@@ -60,8 +60,8 @@ translations =
     , previous = { en = "Previous", nl = "Vorige", de = "Vorherige" }
     , next = { en = "Next", nl = "Volgende", de = "Nächste" }
     , sortTitle = { en = "Title", nl = "Titel", de = "Titel" }
-    , sortModified = { en = "Latest modified", nl = "laatst gewijzigd", de = "Geändert" }
-    , sortCreated = { en = "Latest created", nl = "Laatst aangemaakt", de = "Erstellt" }
+    , sortModified = { en = "Latest modified", nl = "Laatst gewijzigd", de = "Geändert" }
+    , sortCreated = { en = "Publication date", nl = "Publicatiedatum", de = "Erstellt" }
     , sortRelevance = { en = "Relevance", nl = "Relevantie", de = "Relevanz" }
     , fixedRangesCustom = { en = "Custom", nl = "Aangepast", de = "Benutzerdefiniert" }
     , fixedRangesFrom = { en = "From", nl = "Van", de = "Von" }

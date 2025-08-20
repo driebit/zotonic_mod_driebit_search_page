@@ -12,6 +12,7 @@ $tinyBreakpoint: 600px;
 $smallBreakpoint: 800px;
 $mediumBreakpoint: 1000px;
 $largeBreakpoint: 1300px;
+$hugeBreakpoint: 1600px;
 
 .c-search {
     display: grid;
@@ -74,10 +75,14 @@ $largeBreakpoint: 1300px;
     flex-direction: column;
     gap: 30px;
     background-color: var(--color-search-filter-bg);
-    padding: 30px;
+    padding: 30px 40px;
 
     @include breakpoint($smallBreakpoint) {
         grid-column: 1 / 2;
+    }
+
+    @include breakpoint($hugeBreakpoint) {
+        padding: 30px 60px;
     }
 }
 

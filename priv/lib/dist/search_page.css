@@ -67,11 +67,16 @@
   flex-direction: column;
   gap: 30px;
   background-color: var(--color-search-filter-bg);
-  padding: 30px;
+  padding: 30px 40px;
 }
 @media (min-width: 800px) {
   .c-search-filters {
     grid-column: 1/2;
+  }
+}
+@media (min-width: 1600px) {
+  .c-search-filters {
+    padding: 30px 60px;
   }
 }
 
