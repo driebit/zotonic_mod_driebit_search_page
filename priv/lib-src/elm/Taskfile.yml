@@ -14,7 +14,7 @@ tasks:
     cmds:
       - pwd
       - mkdir -p dist
-      - task: "{{if .DEBUG}}elm-debug{{else}}elm-optimized{{end}}"
+      - task: elm-optimized
 
   elm-debug:
     cmds:
