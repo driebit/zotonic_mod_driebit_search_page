@@ -134,3 +134,11 @@ msgstr "Toon zonder uitklapper"
 #: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:18
 msgid "Title"
 msgstr "Titel"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:18
+msgid "Results per page"
+msgstr "Resultaten per pagina"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:18
+msgid "Set how many search results are shown per page."
+msgstr "Stel in hoeveel zoekresultaten er per pagina worden weergegeven."
