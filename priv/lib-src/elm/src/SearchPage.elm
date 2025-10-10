@@ -52,6 +52,7 @@ type alias Model =
     , showFilters : Collapse
     , excludedCategories : List String
     , pagination : Pagination.Model
+    , pageLength : Int
     }
 
 
@@ -66,9 +67,12 @@ type SearchResult
 init : Decode.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        { filters, language, screenWidth, excludeCategories, queryString } =
+        decodedFlags =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
+
+        { filters, language, screenWidth, excludeCategories, queryString, pageLength } =
+            decodedFlags
     in
     ( { filters = filters
       , results = WaitingForConnection
@@ -79,6 +83,7 @@ init flags =
       , showFilters = Collapse.fromPageWidth screenWidth
       , excludedCategories = excludeCategories
       , pagination = Pagination.init
+      , pageLength = pageLength
       }
     , Cmd.none
     )
@@ -255,7 +260,8 @@ searchParamsList model =
                 |> List.concatMap Filter.toSearchParams
 
         filters =
-            ( "text", Encode.string model.fullTextSearchQuery )
+            ( "pagelen", Encode.int model.pageLength )
+                :: ( "text", Encode.string model.fullTextSearchQuery )
                 :: ( "cat_exclude", Encode.list Encode.string model.excludedCategories )
                 :: ( "page", Encode.int model.pagination.currentPage )
                 :: baseFilters

@@ -23,5 +23,17 @@
             </div>
         {% endfor %}
     </div>
+
+    <h3>{_ Results per page _}</h3>
+    <p>{_ Set how many search results are shown per page. _}</p>
+    <input
+        type="number"
+        name="page_len~{{ name }}"
+        value="{{ id.page_len|default:20 }}"
+        min="1"
+        step="1"
+        class="form-control"
+        style="max-width: 7rem;"
+    >
 {% endwith %}
 {% endblock %}
