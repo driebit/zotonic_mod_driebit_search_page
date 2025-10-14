@@ -17,6 +17,7 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     ExcludedCategories = m_rsc:p(Id, <<"exclude_categories">>, Context),
     FilteredExludedCategories = 
         lists:filter(fun(Cat) -> not z_utils:is_empty(Cat) end, ExcludedCategories),
+    PageLength = max(0, z_convert:to_integer(m_rsc:p(Id, <<"page_len">>, 20, Context))),
 
     FiltersAndExcludedCategories = 
         maps:merge(
@@ -24,8 +25,9 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
             #{<<"exclude_categories">> => FilteredExludedCategories}
         ),
 
-    {ok, {jsx:encode(FiltersAndExcludedCategories), Rest}};
+    ConfigWithPagelen = maps:put(<<"pagelen">>, PageLength, FiltersAndExcludedCategories),
 
+    {ok, {jsx:encode(ConfigWithPagelen), Rest}};
     
 m_get(_Path, _Msg, _Context) ->
     {error, unknown_path}.

@@ -11,12 +11,13 @@ type alias Flags =
     , language : Language
     , screenWidth : Int
     , queryString : Maybe String
+    , pageLength : Int
     }
 
 
 fromJson : Decoder Flags
 fromJson =
-    Decode.map5 Flags
+    Decode.map6 Flags
         (Decode.at [ "blocks", "filters" ] (Decode.list Filter.fromJson))
         (Decode.at [ "blocks", "exclude_categories" ] (Decode.list Decode.string))
         (Decode.field "language" Translations.languageFromJson)
@@ -24,6 +25,11 @@ fromJson =
         (Decode.oneOf
             [ Decode.map Just (Decode.field "qs" Decode.string)
             , Decode.succeed Nothing
+            ]
+        )
+        (Decode.oneOf
+            [ Decode.at [ "blocks", "pagelen" ] Decode.int
+            , Decode.succeed 20
             ]
         )
 
@@ -35,4 +41,5 @@ defaultFlags =
     , language = Translations.NL
     , screenWidth = 800
     , queryString = Nothing
+    , pageLength = 20
     }
