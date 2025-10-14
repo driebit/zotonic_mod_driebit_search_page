@@ -156,3 +156,67 @@ encodedValue filterProp maybePredicate model =
                         |> Encode.list Encode.string
           )
         ]
+
+
+applyUrlValue : String -> Maybe String -> List ( String, Decode.Value ) -> Model -> Model
+applyUrlValue filterProp maybePredicate params model =
+    let
+        matchingValues =
+            params
+                |> List.filterMap
+                    (\( key, value ) ->
+                        if key == filterProp then
+                            Just value
+
+                        else
+                            Nothing
+                    )
+
+        maybeDecode decoder value =
+            case Decode.decodeValue decoder value of
+                Ok decoded ->
+                    Just decoded
+
+                Err _ ->
+                    Nothing
+
+        decodedIds =
+            case maybePredicate of
+                Just predicate ->
+                    matchingValues
+                        |> List.filterMap (maybeDecode (Decode.list (Decode.list Decode.string)))
+                        |> List.concatMap
+                            (\pairs ->
+                                pairs
+                                    |> List.filterMap
+                                        (\pair ->
+                                            case pair of
+                                                [ idStr, predicateStr ] ->
+                                                    if predicateStr == predicate then
+                                                        String.toInt idStr
+
+                                                    else
+                                                        Nothing
+
+                                                _ ->
+                                                    Nothing
+                                        )
+                            )
+
+                Nothing ->
+                    matchingValues
+                        |> List.filterMap (maybeDecode (Decode.list Decode.string))
+                        |> List.concatMap identity
+                        |> List.filterMap String.toInt
+    in
+    { model | selected = List.sort decodedIds }
+
+
+selectedIds : Model -> List Int
+selectedIds model =
+    List.sort model.selected
+
+
+setSelectedIds : List Int -> Model -> Model
+setSelectedIds ids model =
+    { model | selected = List.sort ids }

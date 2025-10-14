@@ -66,3 +66,33 @@ encodedValue component =
 
         Calendar model ->
             Calendar.encodedValue model
+
+
+toUrlValue : DateComponent -> Maybe String
+toUrlValue component =
+    case component of
+        FixedRanges model ->
+            FixedRanges.toUrlValue model
+
+        Calendar _ ->
+            Nothing
+
+
+applyUrlValue : List ( String, Decode.Value ) -> DateComponent -> DateComponent
+applyUrlValue params component =
+    case component of
+        FixedRanges model ->
+            FixedRanges (FixedRanges.applyUrlValue params model)
+
+        Calendar model ->
+            Calendar model
+
+
+applyUrlString : String -> DateComponent -> DateComponent
+applyUrlString encoded component =
+    case component of
+        FixedRanges model ->
+            FixedRanges (FixedRanges.applyUrlString encoded model)
+
+        Calendar model ->
+            Calendar model
