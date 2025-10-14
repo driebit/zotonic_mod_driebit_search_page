@@ -17,11 +17,7 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     ExcludedCategories = m_rsc:p(Id, <<"exclude_categories">>, Context),
     FilteredExludedCategories = 
         lists:filter(fun(Cat) -> not z_utils:is_empty(Cat) end, ExcludedCategories),
-    PageLen = z_convert:to_integer(m_rsc:p(Id, <<"page_len">>, 20, Context)),
-    PageLength = case PageLen of
-        Len when is_integer(Len), Len > 0 -> Len;
-        _ -> 20
-    end,
+    PageLength = max(0, z_convert:to_integer(m_rsc:p(Id, <<"page_len">>, 20, Context))),
 
     FiltersAndExcludedCategories = 
         maps:merge(
