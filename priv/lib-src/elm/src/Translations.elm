@@ -55,6 +55,7 @@ translations =
     , loading = { en = "Loading...", nl = "Laden...", de = "Wird geladen..." }
     , waitingForConnection = { en = "Waiting for connection...", nl = "Wachten op verbinding...", de = "Warten auf Verbindung..." }
     , noResultsFound = { en = "No results found.", nl = "Geen resultaten gevonden.", de = "Keine Ergebnisse gefunden." }
+    , aboutResults = { en = "About", nl = "Ongeveer", de = "Ungefähr" }
     , results = { en = "results", nl = "resultaten", de = "Ergebnisse" }
     , errorPrefix = { en = "Error: ", nl = "Fout: ", de = "Fehler: " }
     , previous = { en = "Previous", nl = "Vorige", de = "Vorherige" }

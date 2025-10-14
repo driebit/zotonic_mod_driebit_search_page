@@ -331,6 +331,13 @@ viewResults language results templateCache activeSort =
                 resultTemplates =
                     resultIds
                         |> List.map (\id -> Dict.get id templateCache |> Maybe.withDefault [ text "" ])
+
+                resultEstimateText = 
+                    if paginationInfo.isTotalEstimated then 
+                        (translate language translations.aboutResults ++ " " ++ String.fromInt paginationInfo.totalResults ++ " " ++ translate language translations.results)
+                    else 
+                        (String.fromInt paginationInfo.totalResults ++ " " ++ translate language translations.results)
+
             in
             if List.isEmpty resultIds then
                 text (translate language translations.noResultsFound)
@@ -338,7 +345,7 @@ viewResults language results templateCache activeSort =
             else
                 div [ class "c-search-results__wrapper" ]
                     [ div [ class "c-search-results__header" ]
-                        [ h3 [ class "c-search-results__title" ] [ text (String.fromInt paginationInfo.totalResults ++ " " ++ translate language translations.results) ]
+                        [ h3 [ class "c-search-results__title" ] [ text resultEstimateText ]
                         , viewSort language activeSort
                         ]
                     , ul [ class "c-search-results__list" ] (List.map (div [ class "c-search-results__item" ]) resultTemplates)
