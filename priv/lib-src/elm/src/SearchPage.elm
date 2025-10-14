@@ -89,8 +89,11 @@ init flags =
             , pagination = Pagination.init
             , pageLength = decodedFlags.pageLength
             }
+
+        hydratedModel =
+            applyQueryParams decodedFlags.queryParams initialModel
     in
-    ( initialModel, syncUrl initialModel )
+    ( hydratedModel, syncUrl hydratedModel )
 
 
 type Msg
@@ -332,19 +335,19 @@ syncUrl model =
         |> updateUrl
 
 
-encodeQueryParams : List ( String, Encode.Value ) -> Encode.Value
+encodeQueryParams : List ( String, String ) -> Encode.Value
 encodeQueryParams params =
     Encode.list
         (\( key, value ) ->
             Encode.object
                 [ ( "key", Encode.string key )
-                , ( "value", value )
+                , ( "value", Encode.string value )
                 ]
         )
         params
 
 
-queryParams : Model -> List ( String, Encode.Value )
+queryParams : Model -> List ( String, String )
 queryParams model =
     let
         textParam =
@@ -352,12 +355,12 @@ queryParams model =
                 []
 
             else
-                [ ( "qs", Encode.string model.fullTextSearchQuery ) ]
+                [ ( "qs", model.fullTextSearchQuery ) ]
 
         sortParam =
             case model.sortBy of
                 Just sort ->
-                    [ ( "asort", Encode.string sort ) ]
+                    [ ( "asort", sort ) ]
 
                 Nothing ->
                     []
@@ -368,14 +371,14 @@ queryParams model =
                     []
 
                 categories ->
-                    [ ( "cat_exclude", Encode.list Encode.string categories ) ]
+                    [ ( "cat_exclude", Encode.encode 0 (Encode.list Encode.string categories) ) ]
 
         pageParam =
             if model.pagination.currentPage <= 1 then
                 []
 
             else
-                [ ( "page", Encode.int model.pagination.currentPage ) ]
+                [ ( "page", String.fromInt model.pagination.currentPage ) ]
 
         filterParams =
             model.filters
@@ -390,6 +393,65 @@ queryParams model =
         ++ excludedCategoriesParam
         ++ pageParam
         ++ filterParams
+
+
+applyQueryParams : Dict String String -> Model -> Model
+applyQueryParams urlParams model =
+    let
+        fullText =
+            Dict.get "qs" urlParams
+                |> Maybe.withDefault model.fullTextSearchQuery
+
+        sortByValue =
+            case Dict.get "asort" urlParams of
+                Just sort ->
+                    if sort == "relevance" || String.isEmpty sort then
+                        Nothing
+
+                    else
+                        Just sort
+
+                Nothing ->
+                    model.sortBy
+
+        pageNumber =
+            Dict.get "page" urlParams
+                |> Maybe.andThen String.toInt
+                |> Maybe.withDefault model.pagination.currentPage
+
+        excluded =
+            Dict.get "cat_exclude" urlParams
+                |> Maybe.andThen decodeStringList
+                |> Maybe.withDefault model.excludedCategories
+
+        filters =
+            model.filters
+                |> List.map (Filter.applyUrlEncodedValue urlParams)
+
+        paginationWithPage =
+            let
+                paginationModel =
+                    model.pagination
+            in
+            { paginationModel | currentPage = pageNumber }
+    in
+    { model
+        | fullTextSearchQuery = fullText
+        , sortBy = sortByValue
+        , excludedCategories = excluded
+        , filters = filters
+        , pagination = paginationWithPage
+    }
+
+
+decodeStringList : String -> Maybe (List String)
+decodeStringList raw =
+    case Decode.decodeString (Decode.list Decode.string) raw of
+        Ok values ->
+            Just values
+
+        Err _ ->
+            Nothing
 
 
 searchParamsList : Model -> List ( String, Encode.Value )
