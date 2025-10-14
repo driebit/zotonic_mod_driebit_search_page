@@ -263,7 +263,7 @@ rangeToEncodedValue beforeTerm afterTerm customStart customEnd range =
             [ ( afterTerm, Encode.string "now" ) ]
 
         Just Today ->
-            [ ( afterTerm, Encode.string "-1 day" ), ( beforeTerm, Encode.string "now" ) ]
+            [ ( afterTerm, Encode.string "-1 day" ), ( beforeTerm, Encode.string "+1 day" ) ]
 
         Nothing ->
             []
