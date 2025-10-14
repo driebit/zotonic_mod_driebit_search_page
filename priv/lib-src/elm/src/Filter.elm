@@ -169,3 +169,11 @@ toSearchParams filter =
 
                 DateComponent dateComponent ->
                     DateComponent.encodedValue dateComponent
+
+
+toUrlQueryValue : Filter -> Maybe Encode.Value
+toUrlQueryValue filter =
+    filter
+    |> toSearchParams 
+    |> List.map Tuple.second
+    |> List.head
