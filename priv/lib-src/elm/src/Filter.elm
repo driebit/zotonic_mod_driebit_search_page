@@ -7,7 +7,6 @@ import Html exposing (..)
 import Html.Attributes exposing (class)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import List
 import Resource
 import Translations exposing (Language)
 
