@@ -5,8 +5,11 @@ import Filter.TextualComponent.Dropdown as Dropdown
 import Filter.TextualComponent.Multiselect as Multiselect
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (custom)
 import Json.Decode as Decode exposing (Decoder)
+import List
 import Resource exposing (Resource)
+import Set
 import Translations exposing (Language)
 
 
@@ -82,3 +85,41 @@ encodedValue filterProp maybePredicate component =
 
         MultiSelect model ->
             Multiselect.encodedValue filterProp maybePredicate model
+
+
+summaryView : TextualComponent -> Maybe (Html Msg)
+summaryView component =
+    case component of
+        MultiSelect model ->
+            let
+                selections =
+                    model.options
+                        |> List.filter (\resource -> List.member resource.id model.selected)
+            in
+            if List.isEmpty selections then
+                Nothing
+
+            else
+                Just <|
+                    div [ class "c-multiselect__selected" ]
+                        (List.map
+                            (\resource ->
+                                pill resource.title (MultiselectMsg (Multiselect.Select resource.id))
+                            )
+                            selections
+                        )
+
+        _ ->
+            Nothing
+
+
+pill : String -> Msg -> Html Msg
+pill title toMsg =
+    let
+        stopClick =
+            custom "click" (Decode.succeed { message = toMsg, stopPropagation = True, preventDefault = True })
+    in
+    span [ class "c-multiselect__pill", stopClick ]
+        [ text title
+        , span [ class "c-multiselect__remove" ] [ text "×" ]
+        ]

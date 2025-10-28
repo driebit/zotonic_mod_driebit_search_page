@@ -66,3 +66,14 @@ encodedValue component =
 
         Calendar model ->
             Calendar.encodedValue model
+
+
+summaryView : Language -> DateComponent -> Maybe (Html Msg)
+summaryView language component =
+    case component of
+        FixedRanges model ->
+            FixedRanges.summaryView language model
+                |> Maybe.map (Html.map FixedRangesMsg)
+
+        Calendar _ ->
+            Nothing

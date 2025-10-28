@@ -83,27 +83,6 @@ view language model =
             , onInput SearchInput
             ]
             []
-
-        -- Display pills of the selected options
-        , div [ class "c-multiselect__selected" ]
-            (List.map
-                (\id ->
-                    let
-                        option =
-                            List.head (List.filter (\o -> o.id == id) model.options)
-                    in
-                    case option of
-                        Just res ->
-                            span [ class "c-multiselect__pill", onClick (Select res.id) ]
-                                [ text res.title
-                                , span [ class "c-multiselect__remove" ] [ text "×" ]
-                                ]
-
-                        Nothing ->
-                            text ""
-                )
-                model.selected
-            )
         , div [ class "c-multiselect__options" ]
             [ ul [ class "c-multiselect__list" ]
                 (List.take model.numberOfResultsVisible model.filteredOptions

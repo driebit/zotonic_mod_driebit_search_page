@@ -7,6 +7,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import List exposing (range)
 import Resource exposing (Resource)
+import String
 import Translations exposing (Language, translate, translations)
 
 
@@ -233,6 +234,52 @@ encodedValue model =
 
         CustomDateProp prop ->
             rangeToEncodedValue (prop ++ "_before") (prop ++ "_after") model.customStart model.customEnd model.selectedRange
+
+
+summaryView : Language -> Model -> Maybe (Html Msg)
+summaryView language model =
+    case model.selectedRange of
+        Nothing ->
+            Nothing
+
+        Just Custom ->
+            let
+                start =
+                    String.trim model.customStart
+
+                end =
+                    String.trim model.customEnd
+            in
+            case ( String.isEmpty start, String.isEmpty end ) of
+                ( True, True ) ->
+                    pill (translate language translations.fixedRangesCustomRange) (SelectRange Custom)
+
+                ( False, True ) ->
+                    pill start (SelectRange Custom)
+
+                ( True, False ) ->
+                    pill end (SelectRange Custom)
+
+                ( False, False ) ->
+                    pill (start ++ " - " ++ end) (SelectRange Custom)
+
+        Just range ->
+            pill (toStringTranslated language range) (SelectRange range)
+
+
+pill : String -> Msg -> Maybe (Html Msg)
+pill label msg =
+    let
+        stopClick =
+            custom "click" (Decode.succeed { message = msg, stopPropagation = True, preventDefault = True })
+    in
+    Just <|
+        div [ class "c-multiselect__selected" ]
+            [ span [ class "c-multiselect__pill", stopClick ]
+                [ text label
+                , span [ class "c-multiselect__remove" ] [ text "×" ]
+                ]
+            ]
 
 
 rangeToEncodedValue : String -> String -> String -> String -> Maybe Range -> List ( String, Encode.Value )
