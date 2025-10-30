@@ -82,3 +82,31 @@ encodedValue filterProp maybePredicate component =
 
         MultiSelect model ->
             Multiselect.encodedValue filterProp maybePredicate model
+
+
+setSelection : List Int -> TextualComponent -> TextualComponent
+setSelection ids component =
+    case component of
+        Dropdown model ->
+            Dropdown (Dropdown.setSelected (List.head ids) model)
+
+        Checkboxes model ->
+            Checkboxes (Checkboxes.setSelected ids model)
+
+        MultiSelect model ->
+            MultiSelect (Multiselect.setSelected ids model)
+
+
+selectedIds : TextualComponent -> List Int
+selectedIds component =
+    case component of
+        Dropdown model ->
+            Dropdown.selectedId model
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []
+
+        Checkboxes model ->
+            Checkboxes.selectedIds model
+
+        MultiSelect model ->
+            Multiselect.selectedIds model

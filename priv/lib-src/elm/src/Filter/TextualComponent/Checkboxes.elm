@@ -85,3 +85,14 @@ encodedValue filterProp maybePredicate model =
                         |> Encode.list Encode.string
           )
         ]
+
+
+setSelected : List Int -> Model -> Model
+setSelected ids model =
+    { model | selectedResources = Set.fromList ids }
+
+
+selectedIds : Model -> List Int
+selectedIds model =
+    model.selectedResources
+        |> Set.toList

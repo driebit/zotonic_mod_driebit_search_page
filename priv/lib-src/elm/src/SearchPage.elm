@@ -5,6 +5,9 @@ import Collapse exposing (Collapse)
 import Cotonic exposing (CotonicCall, searchPageTopic, templateTopic)
 import Dict exposing (Dict)
 import Filter exposing (Filter)
+import Filter.DateComponent as DateComponent
+import Filter.DateComponent.FixedRanges as FixedRanges
+import Filter.TextualComponent as TextComponent
 import Flags exposing (Flags)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -30,6 +33,9 @@ port connected : (Bool -> msg) -> Sub msg
 
 
 port screenResized : (Int -> msg) -> Sub msg
+
+
+port updateUrl : Encode.Value -> Cmd msg
 
 
 main : Program Decode.Value Model Msg
@@ -71,22 +77,52 @@ init flags =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
-        { filters, language, screenWidth, excludeCategories, queryString, pageLength } =
+        { filters, language, screenWidth, excludeCategories, queryString, pageLength, queryParams } =
             decodedFlags
+
+        queryDict =
+            toQueryParamDict queryParams
+
+        initialPageLength =
+            queryIntValue "pagelen" queryDict
+                |> Maybe.withDefault pageLength
+
+        initialText =
+            queryStringValue "text" queryDict
+                |> Maybe.withDefault (Maybe.withDefault "" queryString)
+
+        initialSort =
+            querySortValue queryDict
+
+        initialPage =
+            queryIntValue "page" queryDict
+                |> Maybe.map (\p -> if p < 1 then 1 else p)
+                |> Maybe.withDefault 1
+
+        initialFilters =
+            applyQueryParamsToFilters queryDict filters
+
+        initialPagination =
+            let
+                pagination =
+                    Pagination.init
+            in
+            { pagination | currentPage = initialPage }
+
+        initialModel =
+            { filters = initialFilters
+            , results = WaitingForConnection
+            , fullTextSearchQuery = initialText
+            , templateCache = Dict.empty
+            , sortBy = initialSort
+            , language = language
+            , showFilters = Collapse.fromPageWidth screenWidth
+            , excludedCategories = excludeCategories
+            , pagination = initialPagination
+            , pageLength = initialPageLength
+            }
     in
-    ( { filters = filters
-      , results = WaitingForConnection
-      , fullTextSearchQuery = queryString |> Maybe.withDefault ""
-      , templateCache = Dict.empty
-      , sortBy = Nothing
-      , language = language
-      , showFilters = Collapse.fromPageWidth screenWidth
-      , excludedCategories = excludeCategories
-      , pagination = Pagination.init
-      , pageLength = pageLength
-      }
-    , Cmd.none
-    )
+    ( initialModel, updateUrl (encodeUrlParameters initialModel) )
 
 
 type Msg
@@ -124,7 +160,12 @@ update msg model =
                 updatedModel =
                     { model | filters = updatedFilters, pagination = updatedPagination }
             in
-            ( updatedModel, searchPageCall (encodedSearchParams updatedModel) )
+            ( updatedModel
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , updateUrl (encodeUrlParameters updatedModel)
+                ]
+            )
 
         SearchPageReply reply ->
             case Decode.decodeValue (Decode.field "topic" Decode.string) reply |> Result.map (String.split "/") of
@@ -144,7 +185,11 @@ update msg model =
                                         |> List.map Cotonic.toJson
                                         |> List.map searchPageCall
                             in
-                            ( { model | results = Loaded results paginationInfo, pagination = paginationInfo }, Cmd.batch templateCalls )
+                            let
+                                newModel =
+                                    { model | results = Loaded results paginationInfo, pagination = paginationInfo }
+                            in
+                            ( newModel, Cmd.batch (updateUrl (encodeUrlParameters newModel) :: templateCalls) )
 
                         Ok _ ->
                             ( { model | results = Error "Search results returned an unexpected format" }, Cmd.none )
@@ -187,7 +232,10 @@ update msg model =
                     { model | fullTextSearchQuery = query, pagination = { pagination | currentPage = 1 } }
             in
             ( updatedModel
-            , searchPageCall (encodedSearchParams updatedModel)
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , updateUrl (encodeUrlParameters updatedModel)
+                ]
             )
 
         CotonicReady _ ->
@@ -202,7 +250,10 @@ update msg model =
                     { model | pagination = { pagination | currentPage = pageNumber } }
             in
             ( updatedModel
-            , searchPageCall (encodedSearchParamsWithPage updatedModel)
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParamsWithPage updatedModel)
+                , updateUrl (encodeUrlParameters updatedModel)
+                ]
             )
 
         ChangeSort newSort ->
@@ -221,7 +272,10 @@ update msg model =
                     { model | sortBy = maybeNewSort, pagination = { pagination | currentPage = 1 } }
             in
             ( updatedModel
-            , searchPageCall (encodedSearchParams updatedModel)
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , updateUrl (encodeUrlParameters updatedModel)
+                ]
             )
 
         ScreenResized width ->
@@ -273,6 +327,233 @@ searchParamsList model =
 
         Nothing ->
             filters
+
+
+type alias QueryParamDict =
+    Dict String (List String)
+
+
+toQueryParamDict : List ( String, String ) -> QueryParamDict
+toQueryParamDict pairs =
+    List.foldl
+        (\( key, value ) acc ->
+            Dict.update key
+                (\existing ->
+                    Just <| (Maybe.withDefault [] existing) ++ [ value ]
+                )
+                acc
+        )
+        Dict.empty
+        pairs
+
+
+queryStringValue : String -> QueryParamDict -> Maybe String
+queryStringValue key dict =
+    Dict.get key dict
+        |> Maybe.andThen List.head
+        |> Maybe.andThen nonEmpty
+
+
+queryIntValue : String -> QueryParamDict -> Maybe Int
+queryIntValue key dict =
+    queryStringValue key dict
+        |> Maybe.andThen String.toInt
+
+
+querySortValue : QueryParamDict -> Maybe String
+querySortValue dict =
+    queryStringValue "asort" dict
+        |> Maybe.andThen
+            (\value ->
+                if value == "relevance" then
+                    Nothing
+
+                else
+                    Just value
+            )
+
+
+applyQueryParamsToFilters : QueryParamDict -> List Filter -> List Filter
+applyQueryParamsToFilters queryDict filters =
+    List.map (applyQueryParamsToFilter queryDict) filters
+
+
+applyQueryParamsToFilter : QueryParamDict -> Filter -> Filter
+applyQueryParamsToFilter queryDict filter =
+    case ( filter.filterType, filter.component ) of
+        ( Filter.Category, Filter.TextualComponent textualComponent ) ->
+            let
+                ids =
+                    queryValuesAsInts "cat" queryDict
+
+                updatedComponent =
+                    TextComponent.setSelection ids textualComponent
+            in
+            { filter | component = Filter.TextualComponent updatedComponent }
+
+        ( Filter.Object maybePredicate, Filter.TextualComponent textualComponent ) ->
+            let
+                ids =
+                    case maybePredicate of
+                        Just predicate ->
+                            queryValues "hasanyobject" queryDict
+                                |> List.filterMap (extractIdWithPredicate predicate)
+
+                        Nothing ->
+                            queryValuesAsInts "hasanyobject" queryDict
+
+                updatedComponent =
+                    TextComponent.setSelection ids textualComponent
+            in
+            { filter | component = Filter.TextualComponent updatedComponent }
+
+        ( Filter.Date, Filter.DateComponent dateComponent ) ->
+            case dateComponent of
+                DateComponent.FixedRanges fixedRangesModel ->
+                    let
+                        ( beforeKey, afterKey ) =
+                            FixedRanges.parameterNames fixedRangesModel
+
+                        maybeBefore =
+                            queryStringValue beforeKey queryDict
+
+                        maybeAfter =
+                            queryStringValue afterKey queryDict
+
+                        updatedModel =
+                            FixedRanges.setSelectionFromQuery maybeBefore maybeAfter fixedRangesModel
+                    in
+                    { filter | component = Filter.DateComponent (DateComponent.FixedRanges updatedModel) }
+
+                _ ->
+                    filter
+
+        _ ->
+            filter
+
+
+queryValues : String -> QueryParamDict -> List String
+queryValues key dict =
+    Dict.get key dict |> Maybe.withDefault []
+
+
+queryValuesAsInts : String -> QueryParamDict -> List Int
+queryValuesAsInts key dict =
+    queryValues key dict |> List.filterMap String.toInt
+
+
+extractIdWithPredicate : String -> String -> Maybe Int
+extractIdWithPredicate predicate value =
+    case String.split ":" value of
+        pred :: idStr :: _ ->
+            if pred == predicate then
+                String.toInt idStr
+
+            else
+                Nothing
+
+        _ ->
+            Nothing
+
+
+encodeUrlParameters : Model -> Encode.Value
+encodeUrlParameters model =
+    model
+        |> urlParameters
+        |> Encode.list
+            (\( key, value ) ->
+                Encode.object
+                    [ ( "key", Encode.string key )
+                    , ( "value", Encode.string value )
+                    ]
+            )
+
+
+urlParameters : Model -> List ( String, String )
+urlParameters model =
+    let
+        base =
+            []
+                |> appendIfNotEmpty "text" model.fullTextSearchQuery
+                |> appendIfPositive "pagelen" model.pageLength
+                |> appendIfPositive "page" model.pagination.currentPage
+                |> appendSortParam model.sortBy
+    in
+    base ++ List.concatMap filterQueryParameters model.filters
+
+
+appendIfNotEmpty : String -> String -> List ( String, String ) -> List ( String, String )
+appendIfNotEmpty key value acc =
+    if String.isEmpty value then
+        acc
+
+    else
+        acc ++ [ ( key, value ) ]
+
+
+appendIfPositive : String -> Int -> List ( String, String ) -> List ( String, String )
+appendIfPositive key value acc =
+    if value > 0 then
+        acc ++ [ ( key, String.fromInt value ) ]
+
+    else
+        acc
+
+
+appendSortParam : Maybe String -> List ( String, String ) -> List ( String, String )
+appendSortParam maybeSort acc =
+    case maybeSort of
+        Just sort ->
+            acc ++ [ ( "asort", sort ) ]
+
+        Nothing ->
+            acc
+
+
+filterQueryParameters : Filter -> List ( String, String )
+filterQueryParameters filter =
+    case ( filter.filterType, filter.component ) of
+        ( Filter.Category, Filter.TextualComponent textualComponent ) ->
+            textualQueryParameters "cat" Nothing textualComponent
+
+        ( Filter.Object maybePredicate, Filter.TextualComponent textualComponent ) ->
+            textualQueryParameters "hasanyobject" maybePredicate textualComponent
+
+        ( Filter.Date, Filter.DateComponent dateComponent ) ->
+            case dateComponent of
+                DateComponent.FixedRanges fixedRangesModel ->
+                    FixedRanges.queryParameters fixedRangesModel
+
+                _ ->
+                    []
+
+        _ ->
+            []
+
+
+textualQueryParameters : String -> Maybe String -> TextComponent.TextualComponent -> List ( String, String )
+textualQueryParameters key maybePredicate component =
+    let
+        ids =
+            TextComponent.selectedIds component
+    in
+    case maybePredicate of
+        Just predicate ->
+            ids
+                |> List.map (\id -> ( key, predicate ++ ":" ++ String.fromInt id ))
+
+        Nothing ->
+            ids
+                |> List.map (\id -> ( key, String.fromInt id ))
+
+
+nonEmpty : String -> Maybe String
+nonEmpty value =
+    if String.isEmpty value then
+        Nothing
+
+    else
+        Just value
 
 
 

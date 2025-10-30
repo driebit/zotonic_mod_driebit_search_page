@@ -97,3 +97,24 @@ encodedValue filterProp maybePredicate model =
                 |> Maybe.map (\resource -> ( filterProp, Encode.string (String.fromInt resource.id) ))
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
+
+
+setSelected : Maybe Int -> Model -> Model
+setSelected maybeId model =
+    let
+        selectedResource =
+            maybeId
+                |> Maybe.andThen
+                    (\id ->
+                        model.options
+                            |> List.filter (\resource -> resource.id == id)
+                            |> List.head
+                    )
+    in
+    { model | selectedResource = selectedResource }
+
+
+selectedId : Model -> Maybe Int
+selectedId model =
+    model.selectedResource
+        |> Maybe.map .id

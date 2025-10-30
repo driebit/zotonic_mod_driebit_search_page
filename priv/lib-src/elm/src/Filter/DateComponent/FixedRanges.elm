@@ -267,3 +267,124 @@ rangeToEncodedValue beforeTerm afterTerm customStart customEnd range =
 
         Nothing ->
             []
+
+
+parameterNames : Model -> ( String, String )
+parameterNames model =
+    case model.dateProp of
+        PublicationDate ->
+            ( "publication_before", "publication_after" )
+
+        ModificationDate ->
+            ( "modified_before", "modified_after" )
+
+        EventDate ->
+            ( "date_start_before", "date_end_after" )
+
+        CustomDateProp prop ->
+            ( prop ++ "_before", prop ++ "_after" )
+
+
+setSelectionFromQuery : Maybe String -> Maybe String -> Model -> Model
+setSelectionFromQuery maybeBefore maybeAfter model =
+    case ( maybeBefore, maybeAfter ) of
+        ( Nothing, Nothing ) ->
+            model
+
+        _ ->
+            let
+                matches range =
+                    case range of
+                        Custom ->
+                            False
+
+                        Last7Days ->
+                            maybeBefore == Just "now" && maybeAfter == Just "-1 week"
+
+                        LastMonth ->
+                            maybeBefore == Just "now" && maybeAfter == Just "-1 month"
+
+                        LastYear ->
+                            maybeBefore == Just "now" && maybeAfter == Just "-1 year"
+
+                        PreviousYear ->
+                            maybeBefore == Just "-1 year" && maybeAfter == Just "-2 years"
+
+                        NextWeek ->
+                            maybeBefore == Just "+1 week" && maybeAfter == Just "now"
+
+                        NextMonth ->
+                            maybeBefore == Just "+1 month" && maybeAfter == Just "now"
+
+                        Upcoming ->
+                            maybeBefore == Nothing && maybeAfter == Just "now"
+
+                        Today ->
+                            maybeBefore == Just "+1 day" && maybeAfter == Just "-1 day"
+            in
+            case List.filter matches model.ranges |> List.head of
+                Just range ->
+                    { model | selectedRange = Just range, customStart = "", customEnd = "" }
+
+                Nothing ->
+                    if List.member Custom model.ranges then
+                        { model
+                            | selectedRange = Just Custom
+                            , customStart = Maybe.withDefault "" maybeAfter
+                            , customEnd = Maybe.withDefault "" maybeBefore
+                        }
+
+                    else
+                        model
+
+
+queryParameters : Model -> List ( String, String )
+queryParameters model =
+    case model.selectedRange of
+        Nothing ->
+            []
+
+        Just Custom ->
+            let
+                ( beforeKey, afterKey ) =
+                    parameterNames model
+            in
+            [ ( afterKey, model.customStart ), ( beforeKey, model.customEnd ) ]
+                |> List.filter (\( _, value ) -> not (String.isEmpty value))
+
+        Just Last7Days ->
+            rangeToQueryPairs model "-1 week" "now"
+
+        Just LastMonth ->
+            rangeToQueryPairs model "-1 month" "now"
+
+        Just LastYear ->
+            rangeToQueryPairs model "-1 year" "now"
+
+        Just PreviousYear ->
+            rangeToQueryPairs model "-2 years" "-1 year"
+
+        Just NextWeek ->
+            rangeToQueryPairs model "now" "+1 week"
+
+        Just NextMonth ->
+            rangeToQueryPairs model "now" "+1 month"
+
+        Just Upcoming ->
+            let
+                ( _, afterKey ) =
+                    parameterNames model
+            in
+            [ ( afterKey, "now" ) ]
+
+        Just Today ->
+            rangeToQueryPairs model "-1 day" "+1 day"
+
+
+rangeToQueryPairs : Model -> String -> String -> List ( String, String )
+rangeToQueryPairs model afterValue beforeValue =
+    let
+        ( beforeKey, afterKey ) =
+            parameterNames model
+    in
+    [ ( afterKey, afterValue ), ( beforeKey, beforeValue ) ]

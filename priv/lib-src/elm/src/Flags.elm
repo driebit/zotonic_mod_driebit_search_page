@@ -12,12 +12,13 @@ type alias Flags =
     , screenWidth : Int
     , queryString : Maybe String
     , pageLength : Int
+    , queryParams : List ( String, String )
     }
 
 
 fromJson : Decoder Flags
 fromJson =
-    Decode.map6 Flags
+    Decode.map7 Flags
         (Decode.at [ "blocks", "filters" ] (Decode.list Filter.fromJson))
         (Decode.at [ "blocks", "exclude_categories" ] (Decode.list Decode.string))
         (Decode.field "language" Translations.languageFromJson)
@@ -32,6 +33,18 @@ fromJson =
             , Decode.succeed 20
             ]
         )
+        (Decode.oneOf
+            [ Decode.field "queryParams" (Decode.list queryParamDecoder)
+            , Decode.succeed []
+            ]
+        )
+
+
+queryParamDecoder : Decoder ( String, String )
+queryParamDecoder =
+    Decode.map2 Tuple.pair
+        (Decode.index 0 Decode.string)
+        (Decode.index 1 Decode.string)
 
 
 defaultFlags : Flags
@@ -42,4 +55,5 @@ defaultFlags =
     , screenWidth = 800
     , queryString = Nothing
     , pageLength = 20
+    , queryParams = []
     }
