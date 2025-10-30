@@ -5,6 +5,7 @@ import Filter.TextualComponent.Dropdown as Dropdown
 import Filter.TextualComponent.Multiselect as Multiselect
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import List
 import Json.Decode as Decode exposing (Decoder)
 import Resource exposing (Resource)
 import Translations exposing (Language)
@@ -22,36 +23,58 @@ type Msg
     | MultiselectMsg Multiselect.Msg
 
 
-update : Msg -> TextualComponent -> TextualComponent
+type Effect
+    = MultiselectEffect Multiselect.Effect
+
+
+update : Msg -> TextualComponent -> ( TextualComponent, List Effect )
 update msg displayMode =
     case ( msg, displayMode ) of
         ( DropdownMsg dropdownMsg, Dropdown model ) ->
-            Dropdown (Dropdown.update dropdownMsg model)
+            ( Dropdown (Dropdown.update dropdownMsg model), [] )
 
         ( CheckboxesMsg checkboxesMsg, Checkboxes model ) ->
-            Checkboxes (Checkboxes.update checkboxesMsg model)
+            ( Checkboxes (Checkboxes.update checkboxesMsg model), [] )
 
         ( MultiselectMsg multiselectMsg, MultiSelect model ) ->
-            MultiSelect (Multiselect.update multiselectMsg model)
+            let
+                ( updatedModel, effects ) =
+                    Multiselect.update multiselectMsg model
+            in
+            ( MultiSelect updatedModel, List.map MultiselectEffect effects )
 
         _ ->
-            displayMode
+            ( displayMode, [] )
 
 
-fromJson : Decoder (String -> List Resource -> TextualComponent)
+initialize : TextualComponent -> ( TextualComponent, List Effect )
+initialize displayMode =
+    case displayMode of
+        MultiSelect model ->
+            let
+                ( updatedModel, effects ) =
+                    Multiselect.initialize model
+            in
+            ( MultiSelect updatedModel, List.map MultiselectEffect effects )
+
+        _ ->
+            ( displayMode, [] )
+
+
+fromJson : Decoder (String -> List Resource -> Bool -> TextualComponent)
 fromJson =
     Decode.string
         |> Decode.andThen
             (\str ->
                 case str of
                     "dropdown" ->
-                        Decode.succeed (\id resources -> Dropdown (Dropdown.init id resources))
+                        Decode.succeed (\id resources _ -> Dropdown (Dropdown.init id resources))
 
                     "checkboxes" ->
-                        Decode.succeed (\_ resources -> Checkboxes (Checkboxes.init resources))
+                        Decode.succeed (\_ resources _ -> Checkboxes (Checkboxes.init resources))
 
                     "multiselect" ->
-                        Decode.succeed (\_ resources -> MultiSelect (Multiselect.init resources))
+                        Decode.succeed (\_ resources hasMore -> MultiSelect (Multiselect.init resources hasMore))
 
                     _ ->
                         Decode.fail ("Unknown display mode: " ++ str)

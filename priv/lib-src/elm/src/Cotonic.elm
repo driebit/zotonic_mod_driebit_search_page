@@ -25,6 +25,36 @@ templateTopic id =
     , replyTopic = "TemplateReply/" ++ String.fromInt id
     }
 
+filterOptionsTopic : String -> String -> Int -> Maybe String -> Maybe String -> CotonicCall
+filterOptionsTopic filterId query page maybeCategory maybePredicate =
+    let
+        baseParams =
+            [ ( "query", Encode.string query )
+            , ( "page", Encode.int page )
+            , ( "pagelen", Encode.int 30 )
+            ]
+
+        categoryParams =
+            case maybeCategory of
+                Just category ->
+                    [ ( "category", Encode.string category ) ]
+
+                Nothing ->
+                    []
+
+        predicateParams =
+            case maybePredicate of
+                Just predicate ->
+                    [ ( "predicate", Encode.string predicate ) ]
+
+                Nothing ->
+                    []
+    in
+    { topic = "bridge/origin/model/search_filters/get/options"
+    , parameters = baseParams ++ categoryParams ++ predicateParams
+    , replyTopic = "FilterOptionsReply/" ++ filterId
+    }
+
 
 toJson : CotonicCall -> Encode.Value
 toJson call =
