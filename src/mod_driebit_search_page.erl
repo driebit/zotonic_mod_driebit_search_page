@@ -14,7 +14,12 @@
 
 -mod_schema(1).
 
--export([observe_admin_menu/3, manage_schema/2, observe_admin_edit_blocks/3]).
+-export([
+    observe_admin_menu/3,
+    manage_schema/2,
+    observe_admin_edit_blocks/3,
+    observe_search_query_term/2
+]).
 
 
 observe_admin_menu(#admin_menu{}, Acc, _Context) ->
@@ -49,5 +54,10 @@ observe_admin_edit_blocks(#admin_edit_blocks{id = Id}, Menu, Context) ->
         _ ->
             Menu
         end.
+
+observe_search_query_term(#search_query_term{ term = <<"text_contains">>, arg = Arg }, Context) ->
+    driebit_search_text_contains:search_query_term(Arg, Context);
+observe_search_query_term(#search_query_term{}, _Context) ->
+    undefined.
 
 

@@ -400,7 +400,7 @@ searchParamsList model =
 
         filters =
             ( "pagelen", Encode.int model.pageLength )
-                :: ( "text", Encode.string model.fullTextSearchQuery )
+                :: ( "text_contains", Encode.string model.fullTextSearchQuery )
                 :: ( "cat_exclude", Encode.list Encode.string model.excludedCategories )
                 :: ( "page", Encode.int model.pagination.currentPage )
                 :: baseFilters
