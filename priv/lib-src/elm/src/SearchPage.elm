@@ -77,23 +77,37 @@ init flags =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
-        initialModel =
-            { filters = decodedFlags.filters
-            , results = WaitingForConnection
-            , fullTextSearchQuery = decodedFlags.queryString |> Maybe.withDefault ""
-            , templateCache = Dict.empty
-            , sortBy = Nothing
-            , language = decodedFlags.language
-            , showFilters = Collapse.fromPageWidth decodedFlags.screenWidth
-            , excludedCategories = decodedFlags.excludeCategories
-            , pagination = Pagination.init
-            , pageLength = decodedFlags.pageLength
-            }
+        { language, screenWidth, excludeCategories, queryString, pageLength } =
+            decodedFlags
 
-        hydratedModel =
-            applyQueryParams decodedFlags.queryParams initialModel
+        ( preparedFilters, filterEffects ) =
+            initializeFilters decodedFlags.filters
+
+        initialCommands =
+            filterEffects
+                |> List.filterMap filterEffectToCmd
+
+        initialCmd =
+            case initialCommands of
+                [] ->
+                    Cmd.none
+
+                _ ->
+                    Cmd.batch initialCommands
     in
-    ( hydratedModel, syncUrl hydratedModel )
+    ( { filters = preparedFilters
+      , results = WaitingForConnection
+      , fullTextSearchQuery = queryString |> Maybe.withDefault ""
+      , templateCache = Dict.empty
+      , sortBy = Nothing
+      , language = language
+      , showFilters = Collapse.fromPageWidth screenWidth
+      , excludedCategories = excludeCategories
+      , pagination = Pagination.init
+      , pageLength = pageLength
+      }
+    , initialCmd
+    )
 
 
 type Msg
