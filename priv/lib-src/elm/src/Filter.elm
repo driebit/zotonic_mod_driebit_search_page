@@ -1,6 +1,7 @@
 module Filter exposing (..)
 
 import Collapse exposing (Collapse)
+import Dict exposing (Dict)
 import Filter.DateComponent as DateComponent exposing (DateComponent)
 import Filter.TextualComponent as TextualComponent exposing (TextualComponent)
 import Html exposing (..)
@@ -169,3 +170,173 @@ toSearchParams filter =
 
                 DateComponent dateComponent ->
                     DateComponent.encodedValue dateComponent
+
+
+applyUrlEncodedValue : Dict String String -> Filter -> Filter
+applyUrlEncodedValue queryParams filter =
+    Dict.get filter.id queryParams
+        |> applyUrlValue filter
+
+
+applyUrlValue : Filter -> Maybe String -> Filter
+applyUrlValue filter maybeEncoded =
+    case maybeEncoded of
+        Nothing ->
+            filter
+
+        Just encoded ->
+            case Decode.decodeString urlValueDecoder encoded of
+                Ok params ->
+                    applyParams params filter
+
+                Err _ ->
+                    applySimpleValue encoded filter
+
+
+applyParams : List ( String, Decode.Value ) -> Filter -> Filter
+applyParams params filter =
+    case ( filter.filterType, filter.component ) of
+        ( Category, TextualComponent textualComponent ) ->
+            let
+                updatedComponent =
+                    TextualComponent.applyUrlValue "cat" Nothing params textualComponent
+            in
+            { filter
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
+            }
+
+        ( Object maybePredicate, TextualComponent textualComponent ) ->
+            let
+                updatedComponent =
+                    TextualComponent.applyUrlValue "hasanyobject" maybePredicate params textualComponent
+            in
+            { filter
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
+            }
+
+        ( Date, DateComponent dateComponent ) ->
+            let
+                updatedComponent =
+                    DateComponent.applyUrlValue params dateComponent
+            in
+            { filter
+                | component = DateComponent updatedComponent
+                , collapse = Collapse.openIf (DateComponent.isSet updatedComponent)
+            }
+
+        _ ->
+            filter
+
+
+applySimpleValue : String -> Filter -> Filter
+applySimpleValue encoded filter =
+    case ( filter.filterType, filter.component ) of
+        ( Category, TextualComponent textualComponent ) ->
+            let
+                ids =
+                    parseIds encoded
+
+                updatedComponent =
+                    TextualComponent.setSelectedIds ids textualComponent
+            in
+            { filter
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
+            }
+
+        ( Object _, TextualComponent textualComponent ) ->
+            let
+                ids =
+                    parseIds encoded
+
+                updatedComponent =
+                    TextualComponent.setSelectedIds ids textualComponent
+            in
+            { filter
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
+            }
+
+        ( Date, DateComponent dateComponent ) ->
+            let
+                updatedComponent =
+                    DateComponent.applyUrlString encoded dateComponent
+            in
+            { filter
+                | component = DateComponent updatedComponent
+                , collapse = Collapse.openIf (DateComponent.isSet updatedComponent)
+            }
+
+        _ ->
+            filter
+
+
+parseIds : String -> List Int
+parseIds encoded =
+    case Decode.decodeString (Decode.list Decode.string) encoded of
+        Ok stringIds ->
+            stringIds |> List.filterMap String.toInt
+
+        Err _ ->
+            case Decode.decodeString (Decode.list (Decode.list Decode.string)) encoded of
+                Ok listOfLists ->
+                    listOfLists
+                        |> List.concat
+                        |> List.filterMap String.toInt
+
+                Err _ ->
+                    case Decode.decodeString Decode.string encoded of
+                        Ok single ->
+                            parseIdsFromText single
+
+                        Err _ ->
+                            parseIdsFromText encoded
+
+
+parseIdsFromText : String -> List Int
+parseIdsFromText text =
+    text
+        |> String.split ","
+        |> List.map String.trim
+        |> List.filter (\part -> not (String.isEmpty part))
+        |> List.filterMap String.toInt
+
+
+toUrlQueryValue : Filter -> Maybe String
+toUrlQueryValue filter =
+    case ( filter.filterType, filter.component ) of
+        ( Category, TextualComponent textualComponent ) ->
+            idsToUrl (TextualComponent.selectedIds textualComponent)
+
+        ( Object _, TextualComponent textualComponent ) ->
+            idsToUrl (TextualComponent.selectedIds textualComponent)
+
+        ( Date, DateComponent dateComponent ) ->
+            DateComponent.toUrlValue dateComponent
+
+        _ ->
+            Nothing
+
+
+idsToUrl : List Int -> Maybe String
+idsToUrl ids =
+    case ids of
+        [] ->
+            Nothing
+
+        _ ->
+            ids
+                |> List.map String.fromInt
+                |> String.join ","
+                |> Just
+
+
+urlValueDecoder : Decode.Decoder (List ( String, Decode.Value ))
+urlValueDecoder =
+    Decode.list
+        (Decode.map2 Tuple.pair
+            (Decode.field "key" Decode.string)
+            (Decode.field "value" Decode.value)
+        )
