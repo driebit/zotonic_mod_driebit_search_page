@@ -16,11 +16,19 @@
 
         const language = "{{ z_language|default:'nl' }}";
 
+        const searchParams = new URLSearchParams(window.location.search);
+        const urlQueryParams = {};
+
+        searchParams.forEach(function(value, key) {
+            urlQueryParams[key] = value;
+        });
+
         {% with q.qs as qs %}
             const flags = 
                 { blocks: blocks,
                 language: language,
-                screenWidth: window.innerWidth
+                screenWidth: window.innerWidth,
+                queryParams: urlQueryParams
                 {% if qs %},qs: "{{qs | escape }}"{% endif %}
                 };
         {% endwith %}
@@ -36,6 +44,21 @@
                     console.log("Error on call to " + call.topic, e);
                 });
             });
+
+        if (searchApp.ports.updateUrl) {
+            searchApp.ports.updateUrl.subscribe(function(params) {
+                const url = new URL(window.location.href);
+                url.search = "";
+
+                params.forEach(function(param) {
+                    if (param && param.key && param.value.length > 0) {
+                        url.searchParams.set(param.key, param.value);
+                    }
+                });
+
+                window.history.replaceState({}, "", url.toString());
+            });
+        }
 
         cotonic.ready.then(
             function() {

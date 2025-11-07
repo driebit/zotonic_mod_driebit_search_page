@@ -235,6 +235,19 @@ encodedValue model =
             rangeToEncodedValue (prop ++ "_before") (prop ++ "_after") model.customStart model.customEnd model.selectedRange
 
 
+toUrlValue : Model -> Maybe String
+toUrlValue model =
+    case model.selectedRange of
+        Nothing ->
+            Nothing
+
+        Just Custom ->
+            Just ("custom:" ++ model.customStart ++ "|" ++ model.customEnd)
+
+        Just range ->
+            Just (rangeToSlug range)
+
+
 rangeToEncodedValue : String -> String -> String -> String -> Maybe Range -> List ( String, Encode.Value )
 rangeToEncodedValue beforeTerm afterTerm customStart customEnd range =
     case range of
@@ -267,3 +280,210 @@ rangeToEncodedValue beforeTerm afterTerm customStart customEnd range =
 
         Nothing ->
             []
+
+
+applyUrlValue : List ( String, Decode.Value ) -> Model -> Model
+applyUrlValue params model =
+    let
+        ( beforeTerm, afterTerm ) =
+            case model.dateProp of
+                PublicationDate ->
+                    ( "publication_before", "publication_after" )
+
+                ModificationDate ->
+                    ( "modified_before", "modified_after" )
+
+                EventDate ->
+                    ( "date_start_before", "date_end_after" )
+
+                CustomDateProp prop ->
+                    ( prop ++ "_before", prop ++ "_after" )
+
+        maybeDecodeString value =
+            case Decode.decodeValue Decode.string value of
+                Ok str ->
+                    Just str
+
+                Err _ ->
+                    Nothing
+
+        findValue term =
+            params
+                |> List.filterMap
+                    (\( key, value ) ->
+                        if key == term then
+                            maybeDecodeString value
+
+                        else
+                            Nothing
+                    )
+                |> List.head
+
+        afterValue =
+            findValue afterTerm
+
+        beforeValue =
+            findValue beforeTerm
+
+        resetCustom model_ =
+            { model_ | customStart = "", customEnd = "" }
+    in
+    case ( afterValue, beforeValue ) of
+        ( Just "-1 week", Just "now" ) ->
+            { model | selectedRange = Just Last7Days }
+                |> resetCustom
+
+        ( Just "-1 month", Just "now" ) ->
+            { model | selectedRange = Just LastMonth }
+                |> resetCustom
+
+        ( Just "-1 year", Just "now" ) ->
+            { model | selectedRange = Just LastYear }
+                |> resetCustom
+
+        ( Just "-2 years", Just "-1 year" ) ->
+            { model | selectedRange = Just PreviousYear }
+                |> resetCustom
+
+        ( Just "now", Just "+1 week" ) ->
+            { model | selectedRange = Just NextWeek }
+                |> resetCustom
+
+        ( Just "now", Just "+1 month" ) ->
+            { model | selectedRange = Just NextMonth }
+                |> resetCustom
+
+        ( Just "now", Just "+1 day" ) ->
+            { model | selectedRange = Just Today }
+                |> resetCustom
+
+        ( Just "now", Nothing ) ->
+            { model | selectedRange = Just Upcoming }
+                |> resetCustom
+
+        ( Nothing, Nothing ) ->
+            model
+
+        ( after, before ) ->
+            { model
+                | selectedRange = Just Custom
+                , customStart = Maybe.withDefault "" after
+                , customEnd = Maybe.withDefault "" before
+            }
+
+
+applyUrlString : String -> Model -> Model
+applyUrlString encoded model =
+    let
+        trimmed =
+            String.trim encoded
+
+        resetCustom model_ =
+            { model_ | customStart = "", customEnd = "" }
+    in
+    if String.isEmpty trimmed then
+        { model | selectedRange = Nothing }
+            |> resetCustom
+
+    else if String.length trimmed >= 7 && String.toLower (String.left 7 trimmed) == "custom:" then
+        let
+            remainder =
+                String.dropLeft 7 trimmed
+
+            ( start, end_ ) =
+                parseCustom remainder
+        in
+        { model
+            | selectedRange = Just Custom
+            , customStart = start
+            , customEnd = end_
+        }
+
+    else
+        case slugToRange (String.toLower trimmed) of
+            Just range ->
+                { model | selectedRange = Just range }
+                    |> resetCustom
+
+            Nothing ->
+                model
+
+
+rangeToSlug : Range -> String
+rangeToSlug range =
+    case range of
+        Last7Days ->
+            "last7days"
+
+        LastMonth ->
+            "lastmonth"
+
+        LastYear ->
+            "lastyear"
+
+        PreviousYear ->
+            "previousyear"
+
+        NextWeek ->
+            "nextweek"
+
+        NextMonth ->
+            "nextmonth"
+
+        Upcoming ->
+            "upcoming"
+
+        Today ->
+            "today"
+
+        Custom ->
+            "custom"
+
+
+slugToRange : String -> Maybe Range
+slugToRange slug =
+    case slug of
+        "last7days" ->
+            Just Last7Days
+
+        "lastmonth" ->
+            Just LastMonth
+
+        "lastyear" ->
+            Just LastYear
+
+        "previousyear" ->
+            Just PreviousYear
+
+        "nextweek" ->
+            Just NextWeek
+
+        "nextmonth" ->
+            Just NextMonth
+
+        "upcoming" ->
+            Just Upcoming
+
+        "today" ->
+            Just Today
+
+        _ ->
+            Nothing
+
+
+parseCustom : String -> ( String, String )
+parseCustom value =
+    case String.split "|" value of
+        start :: end_ :: _ ->
+            ( start, end_ )
+
+        [ start ] ->
+            ( start, "" )
+
+        _ ->
+            ( "", "" )
+
+
+isSet : Model -> Bool
+isSet model =
+    model.selectedRange /= Nothing

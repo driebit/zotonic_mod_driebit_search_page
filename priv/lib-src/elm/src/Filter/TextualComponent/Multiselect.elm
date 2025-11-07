@@ -135,12 +135,6 @@ viewOption selectedOptions option =
 
 encodedValue : String -> Maybe String -> Model -> List ( String, Encode.Value )
 encodedValue filterProp maybePredicate model =
-    let
-        encodeList predicate =
-            model.selected
-                |> List.map (\id -> [ String.fromInt id, predicate ])
-                |> Encode.list (Encode.list Encode.string)
-    in
     if List.isEmpty model.selected then
         []
 
@@ -148,7 +142,9 @@ encodedValue filterProp maybePredicate model =
         [ ( filterProp
           , case maybePredicate of
                 Just predicate ->
-                    encodeList predicate
+                    model.selected
+                        |> List.map (\id -> [ String.fromInt id, predicate ])
+                        |> Encode.list (Encode.list Encode.string)
 
                 Nothing ->
                     model.selected
@@ -156,3 +152,72 @@ encodedValue filterProp maybePredicate model =
                         |> Encode.list Encode.string
           )
         ]
+
+
+applyUrlValue : String -> Maybe String -> List ( String, Decode.Value ) -> Model -> Model
+applyUrlValue filterProp maybePredicate params model =
+    let
+        matchingValues =
+            params
+                |> List.filterMap
+                    (\( key, value ) ->
+                        if key == filterProp then
+                            Just value
+
+                        else
+                            Nothing
+                    )
+
+        maybeDecode decoder value =
+            case Decode.decodeValue decoder value of
+                Ok decoded ->
+                    Just decoded
+
+                Err _ ->
+                    Nothing
+
+        decodedIds =
+            case maybePredicate of
+                Just predicate ->
+                    matchingValues
+                        |> List.filterMap (maybeDecode (Decode.list (Decode.list Decode.string)))
+                        |> List.concatMap
+                            (\pairs ->
+                                pairs
+                                    |> List.filterMap
+                                        (\pair ->
+                                            case pair of
+                                                [ idStr, predicateStr ] ->
+                                                    if predicateStr == predicate then
+                                                        String.toInt idStr
+
+                                                    else
+                                                        Nothing
+
+                                                _ ->
+                                                    Nothing
+                                        )
+                            )
+
+                Nothing ->
+                    matchingValues
+                        |> List.filterMap (maybeDecode (Decode.list Decode.string))
+                        |> List.concatMap identity
+                        |> List.filterMap String.toInt
+    in
+    { model | selected = List.sort decodedIds }
+
+
+selectedIds : Model -> List Int
+selectedIds model =
+    List.sort model.selected
+
+
+setSelectedIds : List Int -> Model -> Model
+setSelectedIds ids model =
+    { model | selected = List.sort ids }
+
+
+isSet : Model -> Bool
+isSet model =
+    not (List.isEmpty model.selected)

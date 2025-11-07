@@ -1,5 +1,6 @@
 module Flags exposing (..)
 
+import Dict exposing (Dict)
 import Filter exposing (Filter)
 import Json.Decode as Decode exposing (Decoder)
 import Translations exposing (Language)
@@ -12,12 +13,13 @@ type alias Flags =
     , screenWidth : Int
     , queryString : Maybe String
     , pageLength : Int
+    , queryParams : Dict String String
     }
 
 
 fromJson : Decoder Flags
 fromJson =
-    Decode.map6 Flags
+    Decode.map7 Flags
         (Decode.at [ "blocks", "filters" ] (Decode.list Filter.fromJson))
         (Decode.at [ "blocks", "exclude_categories" ] (Decode.list Decode.string))
         (Decode.field "language" Translations.languageFromJson)
@@ -32,6 +34,11 @@ fromJson =
             , Decode.succeed 20
             ]
         )
+        (Decode.oneOf
+            [ Decode.field "queryParams" (Decode.dict Decode.string)
+            , Decode.succeed Dict.empty
+            ]
+        )
 
 
 defaultFlags : Flags
@@ -42,4 +49,5 @@ defaultFlags =
     , screenWidth = 800
     , queryString = Nothing
     , pageLength = 20
+    , queryParams = Dict.empty
     }

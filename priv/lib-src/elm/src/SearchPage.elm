@@ -32,6 +32,9 @@ port connected : (Bool -> msg) -> Sub msg
 port screenResized : (Int -> msg) -> Sub msg
 
 
+port updateUrl : Encode.Value -> Cmd msg
+
+
 main : Program Decode.Value Model Msg
 main =
     Browser.element
@@ -71,22 +74,23 @@ init flags =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
-        { filters, language, screenWidth, excludeCategories, queryString, pageLength } =
-            decodedFlags
+        initialModel =
+            { filters = decodedFlags.filters
+            , results = WaitingForConnection
+            , fullTextSearchQuery = decodedFlags.queryString |> Maybe.withDefault ""
+            , templateCache = Dict.empty
+            , sortBy = Nothing
+            , language = decodedFlags.language
+            , showFilters = Collapse.fromPageWidth decodedFlags.screenWidth
+            , excludedCategories = decodedFlags.excludeCategories
+            , pagination = Pagination.init
+            , pageLength = decodedFlags.pageLength
+            }
+
+        hydratedModel =
+            applyQueryParams decodedFlags.queryParams initialModel
     in
-    ( { filters = filters
-      , results = WaitingForConnection
-      , fullTextSearchQuery = queryString |> Maybe.withDefault ""
-      , templateCache = Dict.empty
-      , sortBy = Nothing
-      , language = language
-      , showFilters = Collapse.fromPageWidth screenWidth
-      , excludedCategories = excludeCategories
-      , pagination = Pagination.init
-      , pageLength = pageLength
-      }
-    , Cmd.none
-    )
+    ( hydratedModel, syncUrl hydratedModel )
 
 
 type Msg
@@ -124,7 +128,12 @@ update msg model =
                 updatedModel =
                     { model | filters = updatedFilters, pagination = updatedPagination }
             in
-            ( updatedModel, searchPageCall (encodedSearchParams updatedModel) )
+            ( updatedModel
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , syncUrl updatedModel
+                ]
+            )
 
         SearchPageReply reply ->
             case Decode.decodeValue (Decode.field "topic" Decode.string) reply |> Result.map (String.split "/") of
@@ -187,11 +196,23 @@ update msg model =
                     { model | fullTextSearchQuery = query, pagination = { pagination | currentPage = 1 } }
             in
             ( updatedModel
-            , searchPageCall (encodedSearchParams updatedModel)
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , syncUrl updatedModel
+                ]
             )
 
         CotonicReady _ ->
-            ( { model | results = Loading }, searchPageCall (encodedSearchParams model) )
+            let
+                updatedModel =
+                    { model | results = Loading }
+            in
+            ( updatedModel
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , syncUrl updatedModel
+                ]
+            )
 
         ChangePage pageNumber ->
             let
@@ -202,7 +223,10 @@ update msg model =
                     { model | pagination = { pagination | currentPage = pageNumber } }
             in
             ( updatedModel
-            , searchPageCall (encodedSearchParamsWithPage updatedModel)
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParamsWithPage updatedModel)
+                , syncUrl updatedModel
+                ]
             )
 
         ChangeSort newSort ->
@@ -221,7 +245,10 @@ update msg model =
                     { model | sortBy = maybeNewSort, pagination = { pagination | currentPage = 1 } }
             in
             ( updatedModel
-            , searchPageCall (encodedSearchParams updatedModel)
+            , Cmd.batch
+                [ searchPageCall (encodedSearchParams updatedModel)
+                , syncUrl updatedModel
+                ]
             )
 
         ScreenResized width ->
@@ -250,6 +277,118 @@ encodedSearchParamsWithPage model =
         |> List.append [ ( "page", Encode.int model.pagination.currentPage ) ]
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
+
+
+syncUrl : Model -> Cmd Msg
+syncUrl model =
+    model
+        |> queryParams
+        |> encodeQueryParams
+        |> updateUrl
+
+
+encodeQueryParams : List ( String, String ) -> Encode.Value
+encodeQueryParams params =
+    Encode.list
+        (\( key, value ) ->
+            Encode.object
+                [ ( "key", Encode.string key )
+                , ( "value", Encode.string value )
+                ]
+        )
+        params
+
+
+queryParams : Model -> List ( String, String )
+queryParams model =
+    let
+        textParam =
+            if String.isEmpty model.fullTextSearchQuery then
+                []
+
+            else
+                [ ( "qs", model.fullTextSearchQuery ) ]
+
+        sortParam =
+            case model.sortBy of
+                Just sort ->
+                    [ ( "asort", sort ) ]
+
+                Nothing ->
+                    []
+
+        pageParam =
+            if model.pagination.currentPage <= 1 then
+                []
+
+            else
+                [ ( "page", String.fromInt model.pagination.currentPage ) ]
+
+        filterParams =
+            model.filters
+                |> List.filterMap
+                    (\filter ->
+                        Filter.toUrlQueryValue filter
+                            |> Maybe.map (\value -> ( filter.id, value ))
+                    )
+    in
+    textParam
+        ++ sortParam
+        ++ pageParam
+        ++ filterParams
+
+
+applyQueryParams : Dict String String -> Model -> Model
+applyQueryParams urlParams model =
+    let
+        fullText =
+            Dict.get "qs" urlParams
+                |> Maybe.withDefault model.fullTextSearchQuery
+
+        sortByValue =
+            case Dict.get "asort" urlParams of
+                Just sort ->
+                    if sort == "relevance" || String.isEmpty sort then
+                        Nothing
+
+                    else
+                        Just sort
+
+                Nothing ->
+                    model.sortBy
+
+        pageNumber =
+            Dict.get "page" urlParams
+                |> Maybe.andThen String.toInt
+                |> Maybe.withDefault model.pagination.currentPage
+
+        filters =
+            model.filters
+                |> List.map (Filter.applyUrlEncodedValue urlParams)
+
+        paginationWithPage =
+            let
+                paginationModel =
+                    model.pagination
+            in
+            { paginationModel | currentPage = pageNumber }
+    in
+    { model
+        | fullTextSearchQuery = fullText
+        , sortBy = sortByValue
+        , filters = filters
+        , pagination = paginationWithPage
+    }
+
+
+decodeStringList : String -> Maybe (List String)
+decodeStringList raw =
+    case Decode.decodeString (Decode.list Decode.string) raw of
+        Ok values ->
+            Just values
+
+        Err _ ->
+            Nothing
 
 
 searchParamsList : Model -> List ( String, Encode.Value )
