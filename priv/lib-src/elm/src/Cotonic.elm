@@ -7,12 +7,13 @@ type alias CotonicCall =
     { topic : String
     , parameters : List ( String, Encode.Value )
     , replyTopic : String
-    , encodeMethod : EncodeMethod
     }
 
-type EncodeMethod =
-    Object
-    | List
+
+type alias ParametersAcc =
+    { singles : List ( String, Encode.Value )
+    , duplicates : List ( String, Encode.Value )
+    }
 
 
 searchPageTopic : List ( String, Encode.Value ) -> CotonicCall
@@ -20,7 +21,6 @@ searchPageTopic parameters =
     { topic = "bridge/origin/model/search/get"
     , parameters = parameters
     , replyTopic = "SearchReply"
-    , encodeMethod = List
     }
 
 
@@ -29,29 +29,77 @@ templateTopic id =
     { topic = "bridge/origin/model/template/get/render/search_result.tpl"
     , parameters = [ ( "id", Encode.int id ) ]
     , replyTopic = "TemplateReply/" ++ String.fromInt id
-    , encodeMethod = Object
     }
+
 
 toJson : CotonicCall -> Encode.Value
 toJson call =
-    case call.encodeMethod of 
-        List -> 
-            Encode.object
-                [ ( "topic", Encode.string call.topic )
-                , ( "parameters"
-                , Encode.list
-                        (\( key, value ) ->
-                            Encode.object
-                                [ ( key, value )
-                                ]
-                        )
-                        call.parameters
-                )
-                , ( "replyTopic", Encode.string call.replyTopic )
-                ]
-        Object -> 
-            Encode.object
-                [ ( "topic", Encode.string call.topic )
-                , ( "parameters", Encode.object call.parameters )
-                , ( "replyTopic", Encode.string call.replyTopic )
-                ]
+    Encode.object
+        [ ( "topic", Encode.string call.topic )
+        , ( "parameters", encodeParameters call.parameters )
+        , ( "replyTopic", Encode.string call.replyTopic )
+        ]
+
+
+encodeParameters : List ( String, Encode.Value ) -> Encode.Value
+encodeParameters parameters =
+    parameters
+        |> List.foldl splitSinglesAndDuplicates emptyAcc
+        |> mergeSinglesAndduplicates
+        |> Encode.object
+
+
+type alias Acc =
+    { singles : List ( String, Encode.Value )
+    , duplicates : List ( String, Encode.Value )
+    }
+
+
+emptyAcc : Acc
+emptyAcc =
+    { singles = []
+    , duplicates = []
+    }
+
+
+splitSinglesAndDuplicates : ( String, Encode.Value ) -> Acc -> Acc
+splitSinglesAndDuplicates ( key, value ) ({ singles, duplicates } as acc) =
+    if List.member key (List.map Tuple.first duplicates) then
+        { acc | duplicates = ( key, value ) :: duplicates }
+
+    else
+        let
+            ( matches, remainingSingles ) =
+                List.partition (\( existingKey, _ ) -> existingKey == key) singles
+        in
+        case matches of
+            [] ->
+                { acc
+                    | singles = ( key, value ) :: singles
+                }
+
+            _ ->
+                { singles = remainingSingles
+                , duplicates =
+                    matches
+                        |> List.foldr (::) (( key, value ) :: duplicates)
+                }
+
+
+mergeSinglesAndduplicates : Acc -> List ( String, Encode.Value )
+mergeSinglesAndduplicates { singles, duplicates } =
+    singles
+        ++ (if List.isEmpty duplicates then
+                []
+
+            else
+                Encode.list
+                    (\( key, value ) ->
+                        Encode.object
+                            [ ( "term", Encode.string key )
+                            , ( "value", value )
+                            ]
+                    )
+                    duplicates
+                    |> (\v -> [ ( "allof", v ) ])
+           )
