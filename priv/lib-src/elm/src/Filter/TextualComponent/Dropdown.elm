@@ -93,10 +93,10 @@ encodedValue filterProp maybePredicate model =
                 |> Maybe.withDefault []
 
         Nothing ->
-                    model.selectedResource
-                        |> Maybe.map (\resource -> ( filterProp, Encode.string (String.fromInt resource.id) ))
-                        |> Maybe.map List.singleton
-                        |> Maybe.withDefault []
+            model.selectedResource
+                |> Maybe.map (\resource -> ( filterProp, Encode.string (String.fromInt resource.id) ))
+                |> Maybe.map List.singleton
+                |> Maybe.withDefault []
 
 
 selectedIds : Model -> List Int
@@ -189,7 +189,7 @@ applyUrlValue filterProp maybePredicate params model =
                                 else
                                     findResourceFromString idStr |> Maybe.map Just
                             )
-                            |> List.head
+                        |> List.head
             in
             case maybeSelection of
                 Just selection ->

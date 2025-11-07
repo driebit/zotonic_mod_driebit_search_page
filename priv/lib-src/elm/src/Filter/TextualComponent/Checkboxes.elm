@@ -62,13 +62,6 @@ view language { selectedResources, options } =
 
 encodedValue : String -> Maybe String -> Model -> List ( String, Value )
 encodedValue filterProp maybePredicate model =
-    let
-        encodeList predicate =
-            model.selectedResources
-                |> Set.toList
-                |> List.map (\id -> [ String.fromInt id, predicate ])
-                |> Encode.list (Encode.list Encode.string)
-    in
     if Set.isEmpty model.selectedResources then
         []
 
@@ -76,7 +69,10 @@ encodedValue filterProp maybePredicate model =
         [ ( filterProp
           , case maybePredicate of
                 Just predicate ->
-                    encodeList predicate
+                    model.selectedResources
+                        |> Set.toList
+                        |> List.map (\id -> [ String.fromInt id, predicate ])
+                        |> Encode.list (Encode.list Encode.string)
 
                 Nothing ->
                     model.selectedResources

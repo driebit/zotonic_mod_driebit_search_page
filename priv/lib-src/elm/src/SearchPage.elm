@@ -317,14 +317,6 @@ queryParams model =
                 Nothing ->
                     []
 
-        excludedCategoriesParam =
-            case model.excludedCategories of
-                [] ->
-                    []
-
-                categories ->
-                    [ ( "cat_exclude", Encode.encode 0 (Encode.list Encode.string categories) ) ]
-
         pageParam =
             if model.pagination.currentPage <= 1 then
                 []
@@ -342,7 +334,6 @@ queryParams model =
     in
     textParam
         ++ sortParam
-        ++ excludedCategoriesParam
         ++ pageParam
         ++ filterParams
 
@@ -371,11 +362,6 @@ applyQueryParams urlParams model =
                 |> Maybe.andThen String.toInt
                 |> Maybe.withDefault model.pagination.currentPage
 
-        excluded =
-            Dict.get "cat_exclude" urlParams
-                |> Maybe.andThen decodeStringList
-                |> Maybe.withDefault model.excludedCategories
-
         filters =
             model.filters
                 |> List.map (Filter.applyUrlEncodedValue urlParams)
@@ -390,7 +376,6 @@ applyQueryParams urlParams model =
     { model
         | fullTextSearchQuery = fullText
         , sortBy = sortByValue
-        , excludedCategories = excluded
         , filters = filters
         , pagination = paginationWithPage
     }

@@ -135,12 +135,6 @@ viewOption selectedOptions option =
 
 encodedValue : String -> Maybe String -> Model -> List ( String, Encode.Value )
 encodedValue filterProp maybePredicate model =
-    let
-        encodeList predicate =
-            model.selected
-                |> List.map (\id -> [ String.fromInt id, predicate ])
-                |> Encode.list (Encode.list Encode.string)
-    in
     if List.isEmpty model.selected then
         []
 
@@ -148,7 +142,9 @@ encodedValue filterProp maybePredicate model =
         [ ( filterProp
           , case maybePredicate of
                 Just predicate ->
-                    encodeList predicate
+                    model.selected
+                        |> List.map (\id -> [ String.fromInt id, predicate ])
+                        |> Encode.list (Encode.list Encode.string)
 
                 Nothing ->
                     model.selected
