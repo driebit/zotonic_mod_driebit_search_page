@@ -293,24 +293,33 @@ applyParams : List ( String, Decode.Value ) -> Filter -> Filter
 applyParams params filter =
     case ( filter.filterType, filter.component ) of
         ( Category, TextualComponent textualComponent ) ->
+            let
+                updatedComponent =
+                    TextualComponent.applyUrlValue "cat" Nothing params textualComponent
+            in
             { filter
-                | component =
-                    TextualComponent <|
-                        TextualComponent.applyUrlValue "cat" Nothing params textualComponent
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
             }
 
         ( Object maybePredicate, TextualComponent textualComponent ) ->
+            let
+                updatedComponent =
+                    TextualComponent.applyUrlValue "hasanyobject" maybePredicate params textualComponent
+            in
             { filter
-                | component =
-                    TextualComponent <|
-                        TextualComponent.applyUrlValue "hasanyobject" maybePredicate params textualComponent
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
             }
 
         ( Date, DateComponent dateComponent ) ->
+            let
+                updatedComponent =
+                    DateComponent.applyUrlValue params dateComponent
+            in
             { filter
-                | component =
-                    DateComponent <|
-                        DateComponent.applyUrlValue params dateComponent
+                | component = DateComponent updatedComponent
+                , collapse = Collapse.openIf (DateComponent.isSet updatedComponent)
             }
 
         _ ->
@@ -324,29 +333,36 @@ applySimpleValue encoded filter =
             let
                 ids =
                     parseIds encoded
+
+                updatedComponent =
+                    TextualComponent.setSelectedIds ids textualComponent
             in
             { filter
-                | component =
-                    TextualComponent <|
-                        TextualComponent.setSelectedIds ids textualComponent
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
             }
 
         ( Object _, TextualComponent textualComponent ) ->
             let
                 ids =
                     parseIds encoded
+
+                updatedComponent =
+                    TextualComponent.setSelectedIds ids textualComponent
             in
             { filter
-                | component =
-                    TextualComponent <|
-                        TextualComponent.setSelectedIds ids textualComponent
+                | component = TextualComponent updatedComponent
+                , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
             }
 
         ( Date, DateComponent dateComponent ) ->
+            let
+                updatedComponent =
+                    DateComponent.applyUrlString encoded dateComponent
+            in
             { filter
-                | component =
-                    DateComponent <|
-                        DateComponent.applyUrlString encoded dateComponent
+                | component = DateComponent updatedComponent
+                , collapse = Collapse.openIf (DateComponent.isSet updatedComponent)
             }
 
         _ ->

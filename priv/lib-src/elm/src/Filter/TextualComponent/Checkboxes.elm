@@ -147,3 +147,8 @@ selectedIds model =
 setSelectedIds : List Int -> Model -> Model
 setSelectedIds ids model =
     { model | selectedResources = Set.fromList ids }
+
+
+isSet : Model -> Bool
+isSet model =
+    not <| Set.isEmpty model.selectedResources

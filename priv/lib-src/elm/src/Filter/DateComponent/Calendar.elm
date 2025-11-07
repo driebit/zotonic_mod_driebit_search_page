@@ -35,3 +35,8 @@ view language _ =
 encodedValue : Model -> List ( String, Decode.Value )
 encodedValue _ =
     []
+
+
+isSet : Model -> Bool
+isSet model =
+    False
