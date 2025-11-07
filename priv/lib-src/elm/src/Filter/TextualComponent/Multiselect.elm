@@ -216,3 +216,8 @@ selectedIds model =
 setSelectedIds : List Int -> Model -> Model
 setSelectedIds ids model =
     { model | selected = List.sort ids }
+
+
+isSet : Model -> Bool
+isSet model =
+    not (List.isEmpty model.selected)

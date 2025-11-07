@@ -96,3 +96,13 @@ applyUrlString encoded component =
 
         Calendar model ->
             Calendar model
+
+
+isSet : DateComponent -> Bool
+isSet component =
+    case component of
+        FixedRanges model ->
+            FixedRanges.isSet model
+
+        Calendar model ->
+            Calendar.isSet model

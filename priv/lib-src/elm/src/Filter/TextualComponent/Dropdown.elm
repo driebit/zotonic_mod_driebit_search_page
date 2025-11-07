@@ -204,3 +204,8 @@ findResource id options =
     options
         |> List.filter (\resource -> resource.id == id)
         |> List.head
+
+
+isSet : Model -> Bool
+isSet model =
+    model.selectedResource /= Nothing

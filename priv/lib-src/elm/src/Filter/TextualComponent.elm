@@ -121,3 +121,16 @@ applyUrlValue filterProp maybePredicate params component =
 
         MultiSelect model ->
             MultiSelect (Multiselect.applyUrlValue filterProp maybePredicate params model)
+
+
+isSet : TextualComponent -> Bool
+isSet component =
+    case component of
+        Dropdown model ->
+            Dropdown.isSet model
+
+        Checkboxes model ->
+            Checkboxes.isSet model
+
+        MultiSelect model ->
+            Multiselect.isSet model

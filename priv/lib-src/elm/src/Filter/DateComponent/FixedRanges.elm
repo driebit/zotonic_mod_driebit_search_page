@@ -363,7 +363,7 @@ applyUrlValue params model =
 
         ( Nothing, Nothing ) ->
             model
-    
+
         ( after, before ) ->
             { model
                 | selectedRange = Just Custom
@@ -482,3 +482,8 @@ parseCustom value =
 
         _ ->
             ( "", "" )
+
+
+isSet : Model -> Bool
+isSet model =
+    model.selectedRange /= Nothing

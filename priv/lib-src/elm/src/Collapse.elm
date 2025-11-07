@@ -86,3 +86,22 @@ fromJson =
                     _ ->
                         Decode.fail ("Unknown collapse state: " ++ str)
             )
+
+
+open : Collapse
+open =
+    Collapsabable Open
+
+
+closed : Collapse
+closed =
+    Collapsabable Closed
+
+
+openIf : Bool -> Collapse
+openIf condition =
+    if condition then
+        open
+
+    else
+        closed
