@@ -5,6 +5,7 @@
     --color-search-filter-bg: #ffffff;
     --color-search-result-bg: #f9f9f9;
     --color-black: #000000;
+    --color-grey: #808080;
     --color-white: #ffffff;
 }
 
@@ -61,12 +62,11 @@ $hugeBreakpoint: 1600px;
 }
 
 .c-full-text-search__searchbar {
-        width: 100%;
-        padding: 10px;
-        background-color: #f0f0f0;
-        border: 1px solid var(--color-black);
-        border-radius: 2.5px;
-
+    width: 100%;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid var(--color-black);
+    border-radius: 2.5px;
 }
 
 .c-search-filters {
@@ -177,6 +177,11 @@ $hugeBreakpoint: 1600px;
     text-decoration: underline;
 }
 
+.c-collapse {
+    border-bottom: 1px solid var(--color-grey);
+    padding-bottom: 1rem;
+}
+
 .c-collapse__content {
     padding-top: 10px;
 }
@@ -238,11 +243,11 @@ $hugeBreakpoint: 1600px;
 }
 
 .c-dropdown__select {
-        padding: 5px 10px;
-        border: 1px solid var(--color-black);
-        border-radius: 2.5px;
-        background-color: var(--color-white);
-        max-width: 200px;
+    padding: 5px 10px;
+    border: 1px solid var(--color-black);
+    border-radius: 2.5px;
+    background-color: var(--color-white);
+    max-width: 200px;
 }
 
 .c-collapse__title {
@@ -250,7 +255,7 @@ $hugeBreakpoint: 1600px;
     cursor: pointer;
 }
 
-.c-collapse__summary {
+.c-collapse__summary-title {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -262,7 +267,7 @@ $hugeBreakpoint: 1600px;
     content: "";
 }
 
-.c-collapse__summary::after {
+.c-collapse .c-collapse__summary-title::after {
     content: "";
     background-image: url("/lib/images/arrow.svg");
     background-repeat: no-repeat;
@@ -273,8 +278,12 @@ $hugeBreakpoint: 1600px;
     display: inline-block;
 }
 
-.c-collapse[open] .c-collapse__summary::after {
-  transform: rotate(180deg);
+.c-collapse__summary-title::after {
+    display: none;
+}
+
+.c-collapse[open] .c-collapse__summary-title::after {
+    transform: rotate(180deg);
 }
 
 .c-search-results__header {
