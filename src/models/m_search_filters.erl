@@ -99,7 +99,7 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
             <<>> -> {[], false, 1};
             [] -> {[], false, 1};
             Category -> 
-                search_options(Category, PredicateName, <<>>, 1, 1, Context)
+                search_options(Category, PredicateName, <<>>, 30, 1, Context)
         end,
     % only add predicate if it is not undefined
     Props = maps:merge(BaseProps, #{
