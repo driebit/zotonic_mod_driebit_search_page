@@ -3,6 +3,7 @@ module Filter.TextualComponent.Multiselect exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode as Decode
 import Json.Encode as Encode
 import Resource exposing (Resource)
 import String
@@ -34,7 +35,12 @@ init options hasMore =
     , numberOfResultsVisible = 10
     , isLoading = False
     , hasFetchedOnce = not (List.isEmpty options)
-    , page = if List.isEmpty options then 0 else 1
+    , page =
+        if List.isEmpty options then
+            0
+
+        else
+            1
     , hasMore = hasMore
     , pendingAppend = False
     , initialOptions = options
@@ -175,10 +181,11 @@ update msg model =
                                     List.map .id model.options
 
                                 newOptions =
-                                    List.filter (
-                                        \option ->
+                                    List.filter
+                                        (\option ->
                                             not (List.member option.id existingIds)
-                                    ) options
+                                        )
+                                        options
                             in
                             model.options ++ newOptions
 

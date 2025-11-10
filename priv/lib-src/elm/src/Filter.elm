@@ -302,10 +302,10 @@ applyParams params filter =
                 , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
             }
 
-        ( Object maybePredicate, TextualComponent textualComponent ) ->
+        ( Object objectMeta, TextualComponent textualComponent ) ->
             let
                 updatedComponent =
-                    TextualComponent.applyUrlValue "hasanyobject" maybePredicate params textualComponent
+                    TextualComponent.applyUrlValue "hasanyobject" objectMeta.predicate params textualComponent
             in
             { filter
                 | component = TextualComponent updatedComponent
