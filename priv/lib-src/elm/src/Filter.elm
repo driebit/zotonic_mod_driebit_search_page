@@ -228,16 +228,19 @@ decodeSpecificFilterProps type_ title =
 
 view : Language -> Filter -> Html Msg
 view language filter =
-    case filter.component of
-        TextualComponent textualComponent ->
-            Collapse.view filter.collapse
-                (h3 [ class "c-collapse__title" ] [ text filter.title ])
-                (Html.map TextualComponentMsg (TextualComponent.view language textualComponent))
+    let
+        header =
+            viewHeader language filter
 
-        DateComponent dateComponent ->
-            Collapse.view filter.collapse
-                (h3 [ class "c-collapse__title" ] [ text filter.title ])
-                (Html.map DateComponentMsg (DateComponent.view language dateComponent))
+        content =
+            case filter.component of
+                TextualComponent textualComponent ->
+                    Html.map TextualComponentMsg (TextualComponent.view language textualComponent)
+
+                DateComponent dateComponent ->
+                    Html.map DateComponentMsg (DateComponent.view language dateComponent)
+    in
+    Collapse.view filter.collapse header content
 
 
 toSearchParams : Filter -> List ( String, Encode.Value )
@@ -266,6 +269,31 @@ toSearchParams filter =
 
                 DateComponent dateComponent ->
                     DateComponent.encodedValue dateComponent
+
+
+viewHeader : Language -> Filter -> Html Msg
+viewHeader language filter =
+    let
+        summaryViewHtml =
+            case filter.component of
+                TextualComponent textualComponent ->
+                    TextualComponent.summaryView textualComponent
+                        |> Maybe.map (Html.map TextualComponentMsg)
+
+                DateComponent dateComponent ->
+                    DateComponent.summaryView language dateComponent
+                        |> Maybe.map (Html.map DateComponentMsg)
+    in
+    div [ class "c-collapse__summary-content" ]
+        (span [ class "c-collapse__summary-title" ] [ text filter.title ]
+            :: (case summaryViewHtml of
+                    Just summaryHtml ->
+                        [ summaryHtml ]
+
+                    Nothing ->
+                        []
+               )
+        )
 
 
 applyUrlEncodedValue : Dict String String -> Filter -> Filter

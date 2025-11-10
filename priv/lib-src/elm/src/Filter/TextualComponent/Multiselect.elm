@@ -35,7 +35,12 @@ init options hasMore =
     , numberOfResultsVisible = 10
     , isLoading = False
     , hasFetchedOnce = not (List.isEmpty options)
-    , page = if List.isEmpty options then 0 else 1
+    , page =
+        if List.isEmpty options then
+            0
+
+        else
+            1
     , hasMore = hasMore
     , pendingAppend = False
     , initialOptions = options
@@ -178,10 +183,11 @@ update msg model =
                                     List.map .id model.options
 
                                 newOptions =
-                                    List.filter (
-                                        \option ->
+                                    List.filter
+                                        (\option ->
                                             not (List.member option.id existingIds)
-                                    ) options
+                                        )
+                                        options
                             in
                             model.options ++ newOptions
 
@@ -241,8 +247,6 @@ view language model =
             , value model.searchQuery
             ]
             []
-        , div [ class "c-multiselect__selected" ]
-            (List.map (viewSelectedPill model.options) model.selected)
         , div [ class "c-multiselect__options" ]
             [ if model.isLoading then
                 div [ class "c-multiselect__loading" ] [ text (translate language translations.loading) ]
