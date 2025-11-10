@@ -4,11 +4,14 @@ import Collapse exposing (Collapse)
 import Dict exposing (Dict)
 import Filter.DateComponent as DateComponent exposing (DateComponent)
 import Filter.TextualComponent as TextualComponent exposing (TextualComponent)
+import Filter.TextualComponent.Multiselect as Multiselect
 import Html exposing (..)
 import Html.Attributes exposing (class)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
+import List
 import Resource
+import String
 import Translations exposing (Language)
 
 
@@ -28,8 +31,24 @@ type Component
 
 type FilterType
     = Category
-    | Object (Maybe String)
+    | Object ObjectMeta
     | Date
+
+
+type alias ObjectMeta =
+    { predicate : Maybe String
+    , category : Maybe String
+    }
+
+
+type FilterEffect
+    = FetchMultiselectOptions
+        { filterId : String
+        , query : String
+        , category : Maybe String
+        , predicate : Maybe String
+        , page : Int
+        }
 
 
 type Msg
@@ -38,20 +57,73 @@ type Msg
     | DateComponentMsg DateComponent.Msg
 
 
-update : Msg -> Filter -> Filter
+update : Msg -> Filter -> ( Filter, List FilterEffect )
 update msg filter =
     case ( msg, filter.component ) of
         ( TextualComponentMsg textualMsg, TextualComponent textualComponent ) ->
-            { filter | component = TextualComponent <| TextualComponent.update textualMsg textualComponent }
+            let
+                ( updatedComponent, textualEffects ) =
+                    TextualComponent.update textualMsg textualComponent
+
+                updatedFilter =
+                    { filter | component = TextualComponent updatedComponent }
+            in
+            ( updatedFilter, textualEffectsToFilterEffects updatedFilter textualEffects )
 
         ( DateComponentMsg dateMsg, DateComponent dateComponent ) ->
-            { filter | component = DateComponent <| DateComponent.update dateMsg dateComponent }
+            ( { filter | component = DateComponent <| DateComponent.update dateMsg dateComponent }, [] )
 
-        ( CollapseMsg collapseMsg, filter_ ) ->
-            filter
+        ( CollapseMsg _, _ ) ->
+            ( filter, [] )
 
         _ ->
-            filter
+            ( filter, [] )
+
+
+textualEffectsToFilterEffects : Filter -> List TextualComponent.Effect -> List FilterEffect
+textualEffectsToFilterEffects filter effects =
+    effects
+        |> List.filterMap (textualEffectToFilterEffect filter)
+
+
+textualEffectToFilterEffect : Filter -> TextualComponent.Effect -> Maybe FilterEffect
+textualEffectToFilterEffect filter effect =
+    case ( effect, filter.filterType ) of
+        ( TextualComponent.MultiselectEffect (Multiselect.FetchOptions request), Object objectMeta ) ->
+            case objectMeta.category of
+                Just category ->
+                    Just
+                        (FetchMultiselectOptions
+                            { filterId = filter.id
+                            , query = request.query
+                            , category = Just category
+                            , predicate = objectMeta.predicate
+                            , page = request.page
+                            }
+                        )
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+initialize : Filter -> ( Filter, List FilterEffect )
+initialize filter =
+    case filter.component of
+        TextualComponent textualComponent ->
+            let
+                ( updatedComponent, textualEffects ) =
+                    TextualComponent.initialize textualComponent
+
+                updatedFilter =
+                    { filter | component = TextualComponent updatedComponent }
+            in
+            ( updatedFilter, textualEffectsToFilterEffects updatedFilter textualEffects )
+
+        DateComponent _ ->
+            ( filter, [] )
 
 
 fromJson : Decoder Filter
@@ -89,34 +161,58 @@ decodeBaseFilterProps =
         (Decode.field "type" Decode.string)
 
 
+decodeMaybeStringField : String -> Decoder (Maybe String)
+decodeMaybeStringField fieldName =
+    Decode.oneOf
+        [ Decode.field fieldName (Decode.string |> Decode.map Just)
+        , Decode.field fieldName (Decode.int |> Decode.map (String.fromInt >> Just))
+        , Decode.succeed Nothing
+        ]
+
+
 decodeSpecificFilterProps : String -> String -> Decoder ( Component, FilterType )
 decodeSpecificFilterProps type_ title =
     case type_ of
         "category_filter" ->
-            Decode.map2 (\toComponent options -> ( TextualComponent (toComponent title options), Category ))
+            Decode.map2 (\toComponent options -> ( TextualComponent (toComponent title options False), Category ))
                 (Decode.field "component" TextualComponent.fromJson)
                 (Decode.field "options" (Decode.list Resource.fromJson))
 
         "object_filter" ->
-            Decode.map3
-                (\toComponent options predicate ->
-                    ( TextualComponent (toComponent title options)
-                    , Object
-                        (if predicate == Just "" then
-                            Nothing
+            Decode.map5
+                (\toComponent options hasMore predicate category ->
+                    let
+                        normalizedPredicate =
+                            case predicate of
+                                Just "" ->
+                                    Nothing
 
-                         else
-                            predicate
-                        )
+                                _ ->
+                                    predicate
+
+                        component =
+                            TextualComponent (toComponent title options hasMore)
+                    in
+                    ( component
+                    , Object
+                        { predicate = normalizedPredicate
+                        , category = category
+                        }
                     )
                 )
                 (Decode.field "component" TextualComponent.fromJson)
                 (Decode.field "options" (Decode.list Resource.fromJson))
                 (Decode.oneOf
+                    [ Decode.field "options_has_more" Decode.bool
+                    , Decode.succeed False
+                    ]
+                )
+                (Decode.oneOf
                     [ Decode.field "selected_predicate" (Decode.maybe Decode.string)
                     , Decode.succeed Nothing
                     ]
                 )
+                (decodeMaybeStringField "selected_category")
 
         "date_filter" ->
             Decode.field "date_prop" Decode.string
@@ -155,10 +251,10 @@ toSearchParams filter =
                 DateComponent _ ->
                     []
 
-        Object maybePredicate ->
+        Object objectMeta ->
             case filter.component of
                 TextualComponent textualComponent ->
-                    TextualComponent.encodedValue "hasanyobject" maybePredicate textualComponent
+                    TextualComponent.encodedValue "hasanyobject" objectMeta.predicate textualComponent
 
                 DateComponent _ ->
                     []
@@ -206,10 +302,10 @@ applyParams params filter =
                 , collapse = Collapse.openIf (TextualComponent.isSet updatedComponent)
             }
 
-        ( Object maybePredicate, TextualComponent textualComponent ) ->
+        ( Object objectMeta, TextualComponent textualComponent ) ->
             let
                 updatedComponent =
-                    TextualComponent.applyUrlValue "hasanyobject" maybePredicate params textualComponent
+                    TextualComponent.applyUrlValue "hasanyobject" objectMeta.predicate params textualComponent
             in
             { filter
                 | component = TextualComponent updatedComponent
