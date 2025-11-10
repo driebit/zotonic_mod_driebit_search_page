@@ -88,12 +88,7 @@ init flags =
                 |> List.filterMap filterEffectToCmd
 
         initialCmd =
-            case initialCommands of
-                [] ->
-                    Cmd.none
-
-                _ ->
-                    Cmd.batch initialCommands
+            Cmd.batch initialCommands
     in
     ( { filters = preparedFilters
       , results = WaitingForConnection

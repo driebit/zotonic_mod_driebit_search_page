@@ -55,27 +55,13 @@ m_get(_Path, _Msg, _Context) ->
     {error, unknown_path}.
 
 search_options(Category, PredicateName, Query, PageLen, Page, Context) ->
-    SearchProps0 = [{cat, Category}, {pagelen, PageLen}],
+    SearchProps0 = [{cat, Category}, {text, Query}, {page, Page}, {pagelen, PageLen}],
     SearchProps1 =
         case PredicateName of
-            undefined ->
-                SearchProps0;
-            _ ->
-                SearchProps0 ++ [{hasanysubject, ['*', PredicateName]}]
+            undefined -> SearchProps0;
+            _ -> SearchProps0 ++ [{hasanysubject, ['*', PredicateName]}]
         end,
-    SearchProps2 =
-        case z_utils:is_empty(Query) of
-            true ->
-                SearchProps1;
-            false ->
-                SearchProps1 ++ [{text, Query}]
-        end,
-    SearchProps3 =
-        case Page of
-            1 -> SearchProps2;
-            _ -> SearchProps2 ++ [{page, Page}]
-        end,
-    case m_search:search({query, SearchProps3}, Context) of
+    case m_search:search({query, SearchProps1}, Context) of
         #search_result{result = Result, next = Next, pages = Pages, page = CurrentPage} ->
             Titles = add_title(Result, Context),
             HasMore =
