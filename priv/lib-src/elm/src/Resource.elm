@@ -1,6 +1,7 @@
 module Resource exposing (..)
 
 import Json.Decode as Decode exposing (Decoder)
+import String
 
 
 type alias Resource =

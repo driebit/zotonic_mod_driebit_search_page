@@ -2,9 +2,11 @@ port module SearchPage exposing (..)
 
 import Browser
 import Collapse exposing (Collapse)
-import Cotonic exposing (CotonicCall, searchPageTopic, templateTopic)
+import Cotonic exposing (CotonicCall, filterOptionsTopic, searchPageTopic, templateTopic)
 import Dict exposing (Dict)
-import Filter exposing (Filter)
+import Filter exposing (..)
+import Filter.TextualComponent as TextualComponent
+import Filter.TextualComponent.Multiselect as Multiselect
 import Flags exposing (Flags)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -15,6 +17,8 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (sort)
 import Pagination
+import Resource
+import String
 import Task exposing (Task)
 import Time exposing (Month(..))
 import Translations exposing (Language, translate, translations)
@@ -74,8 +78,11 @@ init flags =
             Decode.decodeValue Flags.fromJson flags
                 |> Result.withDefault Flags.defaultFlags
 
+        ( preparedFilters, filterEffects ) =
+            initializeFilters decodedFlags.filters
+
         initialModel =
-            { filters = decodedFlags.filters
+            { filters = preparedFilters
             , results = WaitingForConnection
             , fullTextSearchQuery = decodedFlags.queryString |> Maybe.withDefault ""
             , templateCache = Dict.empty
@@ -89,8 +96,16 @@ init flags =
 
         hydratedModel =
             applyQueryParams decodedFlags.queryParams initialModel
+
+        initialCommands =
+            filterEffects
+                |> List.filterMap filterEffectToCmd
+
+        initialCmd =
+            (syncUrl hydratedModel :: initialCommands)
+                |> Cmd.batch
     in
-    ( hydratedModel, syncUrl hydratedModel )
+    ( hydratedModel, initialCmd )
 
 
 type Msg
@@ -108,16 +123,8 @@ update msg model =
     case msg of
         FilterMsg id filterMsg ->
             let
-                updatedFilters =
-                    model.filters
-                        |> List.map
-                            (\filter ->
-                                if filter.id == id then
-                                    Filter.update filterMsg filter
-
-                                else
-                                    filter
-                            )
+                ( updatedFilters, effects ) =
+                    updateFilterById id filterMsg model.filters
 
                 pagination =
                     model.pagination
@@ -127,12 +134,18 @@ update msg model =
 
                 updatedModel =
                     { model | filters = updatedFilters, pagination = updatedPagination }
+
+                effectCommands =
+                    effects
+                        |> List.filterMap filterEffectToCmd
             in
             ( updatedModel
             , Cmd.batch
-                [ searchPageCall (encodedSearchParams updatedModel)
-                , syncUrl updatedModel
-                ]
+                ([ searchPageCall (encodedSearchParams updatedModel)
+                 , syncUrl updatedModel
+                 ]
+                    ++ effectCommands
+                )
             )
 
         SearchPageReply reply ->
@@ -180,6 +193,59 @@ update msg model =
 
                         Err err ->
                             ( { model | results = Error (Decode.errorToString err) }, Cmd.none )
+
+                Ok [ "FilterOptionsReply", filterId ] ->
+                    let
+                        decoder =
+                            Decode.map4
+                                (\query options hasMore page ->
+                                    { query = query
+                                    , options = options
+                                    , hasMore = hasMore
+                                    , page = page
+                                    }
+                                )
+                                (Decode.oneOf
+                                    [ Decode.at [ "reply", "payload", "result", "query" ] Decode.string
+                                    , Decode.succeed ""
+                                    ]
+                                )
+                                (Decode.oneOf
+                                    [ Decode.at [ "reply", "payload", "result", "options" ] (Decode.list Resource.fromJson)
+                                    , Decode.succeed []
+                                    ]
+                                )
+                                (Decode.oneOf
+                                    [ Decode.at [ "reply", "payload", "result", "has_more" ] Decode.bool
+                                    , Decode.succeed False
+                                    ]
+                                )
+                                (Decode.oneOf
+                                    [ Decode.at [ "reply", "payload", "result", "page" ] Decode.int
+                                    , Decode.succeed 1
+                                    ]
+                                )
+                    in
+                    case Decode.decodeValue decoder reply of
+                        Ok payload ->
+                            let
+                                responseMsg =
+                                    Multiselect.OptionsFetched payload.query payload.options payload.page payload.hasMore
+
+                                ( updatedFilters, effectLists ) =
+                                    updateFilterById
+                                        filterId
+                                        (Filter.TextualComponentMsg (TextualComponent.MultiselectMsg responseMsg))
+                                        model.filters
+
+                                effectCommands =
+                                    effectLists
+                                        |> List.filterMap filterEffectToCmd
+                            in
+                            ( { model | filters = updatedFilters }, Cmd.batch effectCommands )
+
+                        Err _ ->
+                            ( model, Cmd.none )
 
                 Ok _ ->
                     ( model, Cmd.none )
@@ -412,6 +478,60 @@ searchParamsList model =
 
         Nothing ->
             filters
+
+
+initializeFilters : List Filter -> ( List Filter, List FilterEffect )
+initializeFilters filters =
+    let
+        ( updatedFilters, effectLists ) =
+            filters
+                |> List.map Filter.initialize
+                |> List.unzip
+    in
+    ( updatedFilters, List.concat effectLists )
+
+
+updateFilterById : String -> Filter.Msg -> List Filter -> ( List Filter, List FilterEffect )
+updateFilterById targetId filterMsg filters =
+    let
+        ( updatedFilters, effectLists ) =
+            filters
+                |> List.map
+                    (\filter ->
+                        if filter.id == targetId then
+                            Filter.update filterMsg filter
+
+                        else
+                            ( filter, [] )
+                    )
+                |> List.unzip
+    in
+    ( updatedFilters, List.concat effectLists )
+
+
+filterEffectToCmd : FilterEffect -> Maybe (Cmd Msg)
+filterEffectToCmd effect =
+    case effect of
+        Filter.FetchMultiselectOptions params ->
+            case params.category of
+                Just category ->
+                    if String.isEmpty category then
+                        Nothing
+
+                    else
+                        let
+                            call =
+                                filterOptionsTopic
+                                    params.filterId
+                                    params.query
+                                    params.page
+                                    (Just category)
+                                    params.predicate
+                        in
+                        Just <| searchPageCall (Cotonic.toJson call)
+
+                _ ->
+                    Nothing
 
 
 

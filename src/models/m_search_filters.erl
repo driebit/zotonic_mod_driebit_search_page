@@ -28,9 +28,59 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     ConfigWithPagelen = maps:put(<<"pagelen">>, PageLength, FiltersAndExcludedCategories),
 
     {ok, {jsx:encode(ConfigWithPagelen), Rest}};
-    
+
+m_get([<<"options">>] = _Path, Msg, Context) ->
+    Payload = maps:get(payload, Msg, #{}),
+    Category = maps:get(<<"category">>, Payload, undefined),
+    Predicate = maps:get(<<"predicate">>, Payload, undefined),
+    Query = z_convert:to_binary(maps:get(<<"query">>, Payload, <<>>)),
+    Page = case z_convert:to_integer(maps:get(<<"page">>, Payload, 1)) of
+        P when is_integer(P), P > 0 -> P;
+        _ -> 1
+    end,
+    PageLen = case z_convert:to_integer(maps:get(<<"pagelen">>, Payload, 20)) of
+        N when N > 0 -> N;
+        _ -> 20
+    end,
+    {Options, HasMore, ReturnedPage} =
+        case Category of
+            undefined ->
+                {[], false, Page};
+            _ ->
+                search_options(Category, Predicate, Query, PageLen, Page, Context)
+        end,
+    {ok, {#{<<"options">> => Options, <<"query">> => Query, <<"has_more">> => HasMore, <<"page">> => ReturnedPage}, []}};
+
 m_get(_Path, _Msg, _Context) ->
     {error, unknown_path}.
+
+
+search_options(Category, PredicateName, Query, PageLen, Page, Context) ->
+    SearchProps0 = [{cat, Category}, {text, Query}, {page, Page}, {pagelen, PageLen}],
+    SearchProps1 =
+        case PredicateName of
+            undefined -> SearchProps0;
+            _ -> SearchProps0 ++ [{hasanysubject, ['*', PredicateName]}]
+        end,
+    case m_search:search({query, SearchProps1}, Context) of
+        #search_result{result = Result, next = Next, pages = Pages, page = CurrentPage} ->
+            Titles = add_title(Result, Context),
+            HasMore =
+                case Next of
+                    undefined -> pages_has_more(Pages, CurrentPage);
+                    false -> pages_has_more(Pages, CurrentPage);
+                    _ -> true
+                end,
+            {Titles, HasMore, CurrentPage};
+        _ ->
+            {[], false, Page}
+    end.
+
+pages_has_more(undefined, _CurrentPage) -> false;
+pages_has_more(Pages, CurrentPage) when is_integer(Pages) ->
+    Pages > CurrentPage;
+pages_has_more(_, _) ->
+    false.
 
 
 search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
@@ -43,33 +93,19 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
             undefined -> undefined;
             Pred -> m_rsc:p(Pred, name, undefined, Context)
         end,
-    Options = 
+    {Options, HasMore, _Page} = 
         case SelectedCategory of
-            undefined -> [];
+            undefined -> {[], false, 1};
+            <<>> -> {[], false, 1};
+            [] -> {[], false, 1};
             Category -> 
-                case PredicateName of
-                    undefined -> 
-                        %% Perform search to get the options for the selected category
-                        case m_search:search({query, [{cat, Category}, {pagelen, 1000}]}, Context) of 
-                            #search_result{result = Result} ->
-                                add_title(Result, Context);
-                            _Res -> 
-                                []
-                        end;
-                    _ -> 
-                        %% Perform search to get the options for the selected category. Only include resources that are actually used with the selected predicate
-                        case m_search:search({query, [{cat, Category}, {pagelen, 1000}, {hasanysubject, ['*', PredicateName]}]}, Context) of 
-                            #search_result{result = Result} ->
-                                add_title(Result, Context);
-                            _Res -> 
-                                []
-                        end
-                end
+                search_options(Category, PredicateName, <<>>, 1, 1, Context)
         end,
     % only add predicate if it is not undefined
     Props = maps:merge(BaseProps, #{
         <<"selected_category">> => SelectedCategory,
         <<"options">> => Options,
+        <<"options_has_more">> => HasMore,
         <<"type">> => <<"object_filter">>
     }),
 
