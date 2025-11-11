@@ -290,7 +290,7 @@ update msg model =
             in
             ( updatedModel
             , Cmd.batch
-                [ searchPageCall (encodedSearchParamsWithPage updatedModel)
+                [ searchPageCall (encodedSearchParams updatedModel)
                 , syncUrl updatedModel
                 ]
             )
@@ -332,15 +332,6 @@ encodedSearchParams : Model -> Decode.Value
 encodedSearchParams model =
     model
         |> searchParamsList
-        |> Cotonic.searchPageTopic
-        |> Cotonic.toJson
-
-
-encodedSearchParamsWithPage : Model -> Decode.Value
-encodedSearchParamsWithPage model =
-    model
-        |> searchParamsList
-        |> List.append [ ( "page", Encode.int model.pagination.currentPage ) ]
         |> Cotonic.searchPageTopic
         |> Cotonic.toJson
 

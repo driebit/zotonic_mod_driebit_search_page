@@ -191,6 +191,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  flex-direction: column;
 }
 
 .c-fixed-ranges__option:last-of-type {

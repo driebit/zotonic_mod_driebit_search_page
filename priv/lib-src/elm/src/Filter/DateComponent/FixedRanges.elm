@@ -59,11 +59,11 @@ allRanges dateProp =
             [ Upcoming, Today, NextWeek, NextMonth, LastYear, Custom ]
 
         CustomDateProp _ ->
-            [ Today
-            , Last7Days
-            , LastMonth
+            [ PreviousYear
             , LastYear
-            , PreviousYear
+            , LastMonth
+            , Last7Days
+            , Today
             , Upcoming
             , NextWeek
             , NextMonth
