@@ -518,6 +518,7 @@ filterEffectToCmd effect =
                                     params.page
                                     (Just category)
                                     params.predicate
+                                    params.selected
                         in
                         Just <| searchPageCall (Cotonic.toJson call)
 

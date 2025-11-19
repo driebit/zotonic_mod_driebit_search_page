@@ -48,6 +48,7 @@ type FilterEffect
         , category : Maybe String
         , predicate : Maybe String
         , page : Int
+        , selected : List Int
         }
 
 
@@ -99,6 +100,7 @@ textualEffectToFilterEffect filter effect =
                             , category = Just category
                             , predicate = objectMeta.predicate
                             , page = request.page
+                            , selected = request.selected
                             }
                         )
 

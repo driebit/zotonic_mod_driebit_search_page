@@ -24,13 +24,14 @@ searchPageTopic parameters =
     }
 
 
-filterOptionsTopic : String -> String -> Int -> Maybe String -> Maybe String -> CotonicCall
-filterOptionsTopic filterId query page maybeCategory maybePredicate =
+filterOptionsTopic : String -> String -> Int -> Maybe String -> Maybe String -> List Int -> CotonicCall
+filterOptionsTopic filterId query page maybeCategory maybePredicate selectedIds =
     let
         baseParams =
             [ ( "query", Encode.string query )
             , ( "page", Encode.int page )
             , ( "pagelen", Encode.int 30 )
+            , ( "selected_ids", Encode.list Encode.int selectedIds )
             ]
 
         categoryParams =
