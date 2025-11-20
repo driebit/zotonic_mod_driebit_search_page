@@ -1,5 +1,6 @@
 module Filter.TextualComponent.Multiselect exposing (..)
 
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -60,6 +61,7 @@ type alias FetchRequest =
     { query : String
     , page : Int
     , append : Bool
+    , selected : List Int
     }
 
 
@@ -132,7 +134,13 @@ update msg model =
                 in
                 if shouldFetch then
                     ( resetModel
-                    , [ FetchOptions { query = "", page = resetModel.page, append = False } ]
+                    , [ FetchOptions
+                            { query = ""
+                            , page = resetModel.page
+                            , append = False
+                            , selected = resetModel.selected
+                            }
+                      ]
                     )
 
                 else
@@ -150,7 +158,13 @@ update msg model =
                     , hasMore = False
                     , pendingAppend = False
                   }
-                , [ FetchOptions { query = normalizedQuery, page = 1, append = False } ]
+                , [ FetchOptions
+                        { query = normalizedQuery
+                        , page = 1
+                        , append = False
+                        , selected = baseModel.selected
+                        }
+                  ]
                 )
 
         ShowMoreResults ->
@@ -167,7 +181,13 @@ update msg model =
                     , isLoading = True
                     , pendingAppend = True
                   }
-                , [ FetchOptions { query = model.currentQuery, page = model.page + 1, append = True } ]
+                , [ FetchOptions
+                        { query = model.currentQuery
+                        , page = model.page + 1
+                        , append = True
+                        , selected = model.selected
+                        }
+                  ]
                 )
 
         OptionsFetched query options page hasMore ->
@@ -194,6 +214,9 @@ update msg model =
                         else
                             options
 
+                    mergedOptions =
+                        ensureSelectedOptions model.selected updatedOptions (model.options ++ model.initialOptions)
+
                     newVisibleCount =
                         if model.pendingAppend then
                             model.numberOfResultsVisible
@@ -216,7 +239,7 @@ update msg model =
                             model.initialHasMore
                 in
                 ( { model
-                    | options = updatedOptions
+                    | options = mergedOptions
                     , isLoading = False
                     , numberOfResultsVisible = newVisibleCount
                     , hasFetchedOnce = True
@@ -237,6 +260,10 @@ initialize model =
 
 view : Language -> Model -> Html Msg
 view language model =
+    let
+        displayOptions =
+            visibleOptions model
+    in
     div [ class "c-multiselect" ]
         [ input
             [ name "multiselect"
@@ -254,11 +281,11 @@ view language model =
               else
                 text ""
             , ul [ class "c-multiselect__list" ]
-                (model.options
+                (displayOptions
                     |> List.take model.numberOfResultsVisible
                     |> List.map (viewOption model.selected)
                 )
-            , if List.length model.options > model.numberOfResultsVisible then
+            , if List.length displayOptions > model.numberOfResultsVisible then
                 button [ class "c-multiselect__show-more", onClick ShowMoreResults ]
                     [ text (translate language translations.multiselectShowMore) ]
 
@@ -392,3 +419,35 @@ setSelectedIds ids model =
 isSet : Model -> Bool
 isSet model =
     not (List.isEmpty model.selected)
+
+
+visibleOptions : Model -> List Resource
+visibleOptions model =
+    if String.isEmpty model.currentQuery then
+        model.options
+
+    else
+        model.options
+            |> List.filter (\option -> not (List.member option.id model.selected))
+
+
+ensureSelectedOptions : List Int -> List Resource -> List Resource -> List Resource
+ensureSelectedOptions selectedItems currentOptions knownOptions =
+    let
+        hasResource id =
+            List.any (\option -> option.id == id) currentOptions
+
+        knownDict =
+            (currentOptions ++ knownOptions)
+                |> List.foldl
+                    (\resource dict ->
+                        Dict.insert resource.id resource dict
+                    )
+                    Dict.empty
+
+        missingResources =
+            selectedItems
+                |> List.filter (not << hasResource)
+                |> List.filterMap (\id -> Dict.get id knownDict)
+    in
+    missingResources ++ currentOptions

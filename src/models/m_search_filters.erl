@@ -34,6 +34,7 @@ m_get([<<"options">>] = _Path, Msg, Context) ->
     Category = maps:get(<<"category">>, Payload, undefined),
     Predicate = maps:get(<<"predicate">>, Payload, undefined),
     Query = z_convert:to_binary(maps:get(<<"query">>, Payload, <<>>)),
+    SelectedIds = selected_ids_from_payload(maps:get(<<"selected_ids">>, Payload, [])),
     Page = case z_convert:to_integer(maps:get(<<"page">>, Payload, 1)) of
         P when is_integer(P), P > 0 -> P;
         _ -> 1
@@ -49,7 +50,9 @@ m_get([<<"options">>] = _Path, Msg, Context) ->
             _ ->
                 search_options(Category, Predicate, Query, PageLen, Page, Context)
         end,
-    {ok, {#{<<"options">> => Options, <<"query">> => Query, <<"has_more">> => HasMore, <<"page">> => ReturnedPage}, []}};
+    SelectedOptions = add_title(SelectedIds, Context),
+    OptionsWithSelected = merge_selected_options(SelectedOptions, Options),
+    {ok, {#{<<"options">> => OptionsWithSelected, <<"query">> => Query, <<"has_more">> => HasMore, <<"page">> => ReturnedPage}, []}};
 
 m_get(_Path, _Msg, _Context) ->
     {error, unknown_path}.
@@ -86,6 +89,7 @@ pages_has_more(_, _) ->
 search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
     BaseProps = base_props(Filter, Context),
     SelectedCategory = maps:get(<<"selected_category">>, Filter, undefined),
+    FilterName = maps:get(<<"name">>, Filter, undefined),
     
     Predicate = maps:get(<<"selected_predicate">>, Filter, undefined),
     PredicateName = 
@@ -93,6 +97,8 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
             undefined -> undefined;
             Pred -> m_rsc:p(Pred, name, undefined, Context)
         end,
+    SelectedIds = selected_ids_from_query(FilterName, Context),
+    SelectedOptions = add_title(SelectedIds, Context),
     {Options, HasMore, _Page} = 
         case SelectedCategory of
             undefined -> {[], false, 1};
@@ -101,10 +107,11 @@ search_filter(#{<<"type">> := <<"object_filter">>} = Filter, Context) ->
             Category -> 
                 search_options(Category, PredicateName, <<>>, 30, 1, Context)
         end,
+    OptionsWithSelected = merge_selected_options(SelectedOptions, Options),
     % only add predicate if it is not undefined
     Props = maps:merge(BaseProps, #{
         <<"selected_category">> => SelectedCategory,
-        <<"options">> => Options,
+        <<"options">> => OptionsWithSelected,
         <<"options_has_more">> => HasMore,
         <<"type">> => <<"object_filter">>
     }),
@@ -157,3 +164,46 @@ base_props(Filter, Context) ->
 
 add_title(Ids, Context) ->
     lists:map(fun(R) -> #{id => m_rsc:p(R, id, Context), title => z_trans:lookup_fallback(m_rsc:p(R, title, Context), Context)} end, Ids).
+
+selected_ids_from_query(undefined, _Context) ->
+    [];
+selected_ids_from_query(Name, Context) ->
+    lists:usort(lists:flatmap(
+        fun parse_selected_value/1,
+        z_context:get_q_all(Name, Context)
+    )).
+
+selected_ids_from_payload(undefined) ->
+    [];
+selected_ids_from_payload(Value) when is_list(Value) ->
+    lists:usort(lists:filtermap(
+        fun(Item) ->
+            case z_convert:to_integer(Item) of
+                Int when is_integer(Int) -> {true, Int};
+                _ -> false
+            end
+        end,
+        Value
+    ));
+selected_ids_from_payload(_) ->
+    [].
+
+parse_selected_value(Value) when is_binary(Value) ->
+    lists:filtermap(
+        fun(Part) ->
+            case z_convert:to_integer(z_string:trim(Part)) of
+                Int when is_integer(Int) -> {true, Int};
+                _ -> false
+            end
+        end,
+        binary:split(Value, <<",">>, [ global ])
+    );
+parse_selected_value(Value) ->
+    parse_selected_value(z_convert:to_binary(Value)).
+
+merge_selected_options([], Options) ->
+    Options;
+merge_selected_options(SelectedOptions, Options) ->
+    SelectedIds = [ maps:get(id, Opt) || Opt <- SelectedOptions ],
+    RemainingOptions = [ Opt || Opt <- Options, not lists:member(maps:get(id, Opt), SelectedIds) ],
+    SelectedOptions ++ RemainingOptions.
