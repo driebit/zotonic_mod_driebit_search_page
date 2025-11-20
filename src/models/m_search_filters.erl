@@ -168,55 +168,38 @@ add_title(Ids, Context) ->
 selected_ids_from_query(undefined, _Context) ->
     [];
 selected_ids_from_query(Name, Context) ->
-    Values = z_context:get_q_all(Name, Context),
-    Ids =
-        lists:flatmap(
-            fun(Value) ->
-                parse_selected_value(z_convert:to_binary(Value))
-            end,
-            Values
-        ),
-    lists:usort([ Id || Id <- Ids, is_integer(Id), Id > 0 ]).
+    lists:usort(lists:flatmap(
+        fun parse_selected_value/1,
+        z_context:get_q_all(Name, Context)
+    )).
 
 selected_ids_from_payload(undefined) ->
     [];
 selected_ids_from_payload(Value) when is_list(Value) ->
-    Ids =
-        lists:flatmap(
-            fun(Item) ->
-                case catch z_convert:to_integer(Item) of
-                    Int when is_integer(Int) -> [Int];
-                    _ -> []
-                end
-            end,
-            Value
-        ),
-    lists:usort([ Id || Id <- Ids, Id > 0 ]);
+    lists:usort(lists:filtermap(
+        fun(Item) ->
+            case z_convert:to_integer(Item) of
+                Int when is_integer(Int) -> {true, Int};
+                _ -> false
+            end
+        end,
+        Value
+    ));
 selected_ids_from_payload(_) ->
     [].
 
-parse_selected_value(<<>>) ->
-    [];
-parse_selected_value(Value) ->
-    Parts = binary:split(Value, <<",">>, [ global ]),
-    lists:foldl(
-        fun(Part, Acc) ->
-            Trimmed = z_string:trim(Part),
-            case Trimmed of
-                <<>> ->
-                    Acc;
-                _ ->
-                    case catch binary_to_integer(Trimmed) of
-                        Int when is_integer(Int) ->
-                            [ Int | Acc ];
-                        _ ->
-                            Acc
-                    end
+parse_selected_value(Value) when is_binary(Value) ->
+    lists:filtermap(
+        fun(Part) ->
+            case z_convert:to_integer(z_string:trim(Part)) of
+                Int when is_integer(Int) -> {true, Int};
+                _ -> false
             end
         end,
-        [],
-        Parts
-    ).
+        binary:split(Value, <<",">>, [ global ])
+    );
+parse_selected_value(Value) ->
+    parse_selected_value(z_convert:to_binary(Value)).
 
 merge_selected_options([], Options) ->
     Options;
