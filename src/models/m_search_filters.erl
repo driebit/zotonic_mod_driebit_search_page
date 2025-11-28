@@ -63,7 +63,7 @@ search_options(Category, PredicateName, Query, PageLen, Page, Context) ->
     SearchProps1 =
         case PredicateName of
             undefined -> SearchProps0;
-            _ -> SearchProps0 ++ [{hasanysubject, ['*', PredicateName]}]
+            _ -> SearchProps0 ++ [{hasanyobject, ['*', PredicateName]}]
         end,
     case m_search:search({query, SearchProps1}, Context) of
         #search_result{result = Result, next = Next, pages = Pages, page = CurrentPage} ->
