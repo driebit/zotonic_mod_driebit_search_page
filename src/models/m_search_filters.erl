@@ -59,14 +59,18 @@ m_get(_Path, _Msg, _Context) ->
 
 
 search_options(Category, PredicateName, Query, PageLen, Page, Context) ->
-    SearchProps0 = [{cat, Category}, {text, Query}, {page, Page}, {pagelen, PageLen}],
-    SearchProps1 =
-        case PredicateName of
-            undefined -> SearchProps0;
-            _ -> SearchProps0 ++ [{hasanyobject, ['*', PredicateName]}]
-        end,
-    case m_search:search({query, SearchProps1}, Context) of
-        #search_result{result = Result, next = Next, pages = Pages, page = CurrentPage} ->
+    SearchArgs0 = #{
+        <<"cat">> => m_rsc:rid(Category, Context),
+        <<"title_contains">> => Query,
+        <<"page">> => Page,
+        <<"pagelen">> => PageLen
+    },
+    SearchArgs = case PredicateName of
+        undefined -> SearchArgs0;
+        _ -> maps:put(<<"hasanyobject">>, [<<"*">>, PredicateName], SearchArgs0)
+    end,
+    case m_search:search(<<"query">>, SearchArgs, Context) of
+        {ok, #search_result{result = Result, next = Next, pages = Pages, page = CurrentPage}} ->
             Titles = add_title(Result, Context),
             HasMore =
                 case Next of
@@ -75,7 +79,7 @@ search_options(Category, PredicateName, Query, PageLen, Page, Context) ->
                     _ -> true
                 end,
             {Titles, HasMore, CurrentPage};
-        _ ->
+        _Error ->
             {[], false, Page}
     end.
 

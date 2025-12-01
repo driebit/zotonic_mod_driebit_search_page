@@ -56,7 +56,9 @@ observe_admin_edit_blocks(#admin_edit_blocks{id = Id}, Menu, Context) ->
         end.
 
 observe_search_query_term(#search_query_term{ term = <<"text_contains">>, arg = Arg }, Context) ->
-    driebit_search_text_contains:search_query_term(Arg, Context);
+    driebit_search_text_contains:search_query_text(Arg, Context);
+observe_search_query_term(#search_query_term{ term = <<"title_contains">>, arg = Arg }, Context) ->
+    driebit_search_text_contains:search_query_title(Arg, Context);
 observe_search_query_term(#search_query_term{}, _Context) ->
     undefined.
 

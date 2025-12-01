@@ -7,7 +7,9 @@
 -include_lib("zotonic_core/include/zotonic.hrl").
 
 -export([
-    search_query_term/2
+    search_query_text/2,
+
+    search_query_title/2
 ]).
 
 % This is a Zotonic search query term that approximates a more permissive
@@ -19,7 +21,7 @@
 % by definition does not operate on words, but on tokens that are extracted from
 % documents for faster and logically meaningful matching.
 % Please note: this is an experimental approach and hasn't been widely tested yet.
-search_query_term(InputText, Context) ->
+search_query_text(InputText, Context) ->
     CleanedInput = mod_search:trim(z_convert:to_binary(InputText), Context),
     case mod_search:to_tsquery(CleanedInput, Context) of
         <<>> ->
@@ -33,7 +35,7 @@ search_query_term(InputText, Context) ->
             % get most of the benefits of full-text indexing (e.g. stemming,
             % filtering of stopwords and space characters, etc.) while also
             % matching words that 'contain' the ones in the query.
-            RegExes = tsquery_to_regex(TsQuery),
+            RegExes = tsquery_to_regexes(TsQuery),
 
             RankBehaviour = mod_search:rank_behaviour(Context),
             #search_sql_term{
@@ -62,7 +64,40 @@ search_query_term(InputText, Context) ->
             }
     end.
 
-tsquery_to_regex(TsQuery) ->
+% This is a simple Zotonic search query term that returns any resource whose
+% title contain all of the words in the given text.
+% This is meant to find options, generally to aid a selection or menu, thus it
+% simply sorts the results by their title's length (from shortest to longest).
+% Please note: this is an experimental approach and hasn't been widely tested yet.
+search_query_title(InputText, Context) ->
+    CleanedInput = mod_search:trim(z_convert:to_binary(InputText), Context),
+    RegExes = words_to_regexes(CleanedInput),
+    #search_sql_term{
+        % Use a regex on the pivot title in the resource:
+        where = [<<"rsc.pivot_title ~* ALL(", RegExes/binary ,")">>],
+        % We simply sort by the length of the title, from shortest to longest:
+        sort = ["length(rsc.pivot_title) ASC"]
+    }.
+
+words_to_regexes(Text) ->
+    RegExes = lists:foldl(
+        fun (Word, Acc) ->
+            case z_string:trim(Word) of
+                <<>> -> Acc;
+                Token ->
+                    RegEx = match_word_regex(Token),
+                    case Acc of
+                        <<>> -> RegEx;
+                        _ -> <<Acc/binary, ", ", RegEx/binary>>
+                    end
+            end
+        end,
+        <<>>,
+        binary:split(Text, <<" ">>, [global])
+    ),
+    <<"ARRAY[", RegExes/binary ,"]">>.
+
+tsquery_to_regexes(TsQuery) ->
     RegExes = lists:foldl(
         fun (Word, Acc) ->
             case z_string:trim(Word) of
@@ -73,8 +108,7 @@ tsquery_to_regex(TsQuery) ->
                 % and adds a ':*' at the end, the above are the only cases we
                 % need to filter out
                 Token ->
-                    % matches: word start > any word chars > token > any word chars > word end
-                    RegEx = <<"'\\m\\w*", Token/binary, "\\w*\\M'">>,
+                    RegEx = match_word_regex(Token),
                     case Acc of
                         <<>> -> RegEx;
                         _ -> <<Acc/binary, ", ", RegEx/binary>>
@@ -85,3 +119,7 @@ tsquery_to_regex(TsQuery) ->
         binary:split(TsQuery, <<"'">>, [global])
     ),
     <<"ARRAY[", RegExes/binary ,"]">>.
+
+match_word_regex(Token) ->
+    % matches: word start > any word chars > token > any word chars > word end
+    <<"'\\m\\w*", Token/binary, "\\w*\\M'">>.
