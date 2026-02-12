@@ -14,7 +14,7 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     Filters = lists:map(fun(Block) ->
         search_filter(Block, Context)
     end, Blocks),
-    ExcludedCategories = m_rsc:p(Id, <<"exclude_categories">>, Context),
+    ExcludedCategories = m_rsc:p(Id, <<"exclude_categories">>, [], Context),
     FilteredExludedCategories = 
         lists:filter(fun(Cat) -> not z_utils:is_empty(Cat) end, ExcludedCategories),
     PageLength = max(0, z_convert:to_integer(m_rsc:p(Id, <<"page_len">>, 20, Context))),
