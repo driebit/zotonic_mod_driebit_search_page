@@ -18,12 +18,13 @@ m_get([<<"json">>, Id |Rest], _Msg, Context) ->
     FilteredExludedCategories = 
         lists:filter(fun(Cat) -> not z_utils:is_empty(Cat) end, ExcludedCategories),
     PageLength = max(0, z_convert:to_integer(m_rsc:p(Id, <<"page_len">>, 20, Context))),
+    DefaultSort = default_sort(m_rsc:p(Id, <<"default_sort">>, <<"relevance">>, Context)),
 
-    FiltersAndExcludedCategories = 
-        maps:merge(
-            #{<<"filters">> => Filters},
-            #{<<"exclude_categories">> => FilteredExludedCategories}
-        ),
+    FiltersAndExcludedCategories = #{
+        <<"filters">> => Filters,
+        <<"exclude_categories">> => FilteredExludedCategories,
+        <<"default_sort">> => DefaultSort
+    },
 
     ConfigWithPagelen = maps:put(<<"pagelen">>, PageLength, FiltersAndExcludedCategories),
 
@@ -56,6 +57,16 @@ m_get([<<"options">>] = _Path, Msg, Context) ->
 
 m_get(_Path, _Msg, _Context) ->
     {error, unknown_path}.
+
+
+default_sort(<<"pivot.title">>) ->
+    <<"pivot.title">>;
+default_sort(<<"-rsc.modified">>) ->
+    <<"-rsc.modified">>;
+default_sort(<<"-rsc.created">>) ->
+    <<"-rsc.created">>;
+default_sort(_) ->
+    <<"relevance">>.
 
 
 search_options(Category, PredicateName, Query, PageLen, Page, Context) ->

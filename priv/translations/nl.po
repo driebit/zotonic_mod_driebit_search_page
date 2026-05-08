@@ -142,3 +142,19 @@ msgstr "Resultaten per pagina"
 #: apps/zotonic_mod_driebit_search_page/priv/templates/blocks/_admin_filter.tpl:18
 msgid "Set how many search results are shown per page."
 msgstr "Stel in hoeveel zoekresultaten er per pagina worden weergegeven."
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/_admin_edit_content.name.search_page.tpl:39
+msgid "Default sorting"
+msgstr "Standaard sortering"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/_admin_edit_content.name.search_page.tpl:40
+msgid "Choose how search results are sorted by default."
+msgstr "Kies hoe zoekresultaten standaard gesorteerd worden."
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/_admin_edit_content.name.search_page.tpl:47
+msgid "Relevance"
+msgstr "Relevantie"
+
+#: apps/zotonic_mod_driebit_search_page/priv/templates/_admin_edit_content.name.search_page.tpl:53
+msgid "Latest modified"
+msgstr "Laatst gewijzigd"
