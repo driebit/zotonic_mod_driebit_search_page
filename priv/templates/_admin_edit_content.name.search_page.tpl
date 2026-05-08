@@ -35,5 +35,26 @@
         class="form-control"
         style="max-width: 7rem;"
     >
+
+    <h3>{_ Default sorting _}</h3>
+    <p>{_ Choose how search results are sorted by default. _}</p>
+    <select
+        name="default_sort~{{ name }}"
+        class="form-control"
+        style="max-width: 20rem;"
+    >
+        <option value="relevance" {% if not id.default_sort or id.default_sort == 'relevance' %}selected{% endif %}>
+            {_ Relevance _}
+        </option>
+        <option value="pivot.title" {% if id.default_sort == 'pivot.title' %}selected{% endif %}>
+            {_ Title _}
+        </option>
+        <option value="-rsc.modified" {% if id.default_sort == '-rsc.modified' %}selected{% endif %}>
+            {_ Latest modified _}
+        </option>
+        <option value="-rsc.created" {% if id.default_sort == '-rsc.created' %}selected{% endif %}>
+            {_ Publication date _}
+        </option>
+    </select>
 {% endwith %}
 {% endblock %}

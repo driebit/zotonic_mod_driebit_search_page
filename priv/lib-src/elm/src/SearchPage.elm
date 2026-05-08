@@ -55,6 +55,7 @@ type alias Model =
     , results : SearchResult
     , templateCache : Dict Int (List (Html Msg))
     , sortBy : Maybe String
+    , defaultSort : Maybe String
     , language : Translations.Language
     , showFilters : Collapse
     , excludedCategories : List String
@@ -86,7 +87,8 @@ init flags =
             , results = WaitingForConnection
             , fullTextSearchQuery = decodedFlags.queryString |> Maybe.withDefault ""
             , templateCache = Dict.empty
-            , sortBy = Nothing
+            , sortBy = decodedFlags.defaultSort
+            , defaultSort = decodedFlags.defaultSort
             , language = decodedFlags.language
             , showFilters = Collapse.fromPageWidth decodedFlags.screenWidth
             , excludedCategories = decodedFlags.excludeCategories
@@ -367,12 +369,19 @@ queryParams model =
                 [ ( "qs", model.fullTextSearchQuery ) ]
 
         sortParam =
-            case model.sortBy of
-                Just sort ->
-                    [ ( "asort", sort ) ]
-
-                Nothing ->
+            case ( model.sortBy, model.defaultSort ) of
+                ( Nothing, Nothing ) ->
                     []
+
+                ( Nothing, Just _ ) ->
+                    [ ( "asort", "relevance" ) ]
+
+                ( Just sort, defaultSort ) ->
+                    if Just sort == defaultSort then
+                        []
+
+                    else
+                        [ ( "asort", sort ) ]
 
         pageParam =
             if model.pagination.currentPage <= 1 then
