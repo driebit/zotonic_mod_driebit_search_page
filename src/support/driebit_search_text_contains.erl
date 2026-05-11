@@ -105,8 +105,8 @@ tsquery_to_regexes(TsQuery) ->
                 <<"&">> -> Acc;
                 <<":*">> -> Acc;
                 % Because 'mod_search:to_tsquery' uses psql's 'plainto_tsquery'
-                % and adds a ':*' at the end, the above are the only cases we
-                % need to filter out
+                % or 'websearch_to_tsquery' and adds a ':*' at the end, the
+                % above are the only cases we need to filter out
                 Token ->
                     RegEx = match_word_regex(Token),
                     case Acc of
